@@ -1,0 +1,14 @@
+telegram:
+  #bot-token: ${TELEGRAM_BOT_TOKEN}
+  bot-token: 8792446848:AAFgT9hRr3teI_zMt2v2W9aDdzqCyjvEEOw
+  #webhook-secret: ${TELEGRAM_WEBHOOK_SECRET}
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/interview
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
