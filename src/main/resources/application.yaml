@@ -4,7 +4,7 @@ telegram:
   #webhook-secret: ${TELEGRAM_WEBHOOK_SECRET}
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/interview
+    url: jdbc:postgresql://localhost:5432/practico
     username: postgres
     password: postgres
 

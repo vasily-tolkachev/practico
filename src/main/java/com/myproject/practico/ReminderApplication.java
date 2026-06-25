@@ -1,11 +1,12 @@
-package com.myproject.practico.bootstrap;
+package com.myproject.practico;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = "com.myproject.practico")
+@SpringBootApplication
 public class ReminderApplication {
-	static void main(String[] args) {
+
+	public static void main(String[] args) {
 		SpringApplication.run(ReminderApplication.class, args);
 	}
 }
