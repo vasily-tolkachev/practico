@@ -1,5 +1,6 @@
 package com.myproject.practico.api.telegram;
 
+import com.myproject.practico.config.TelegramProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -8,7 +9,7 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 public class TelegramClient {
 
-    private final TelegramConfig config;
+    private final TelegramProperties config;
 
     public void sendMessage(
             String chatId,
