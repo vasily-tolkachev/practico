@@ -8,11 +8,11 @@ public class HelpCommand implements Command {
 
     @Override
     public boolean supports(String text) {
-        return text.equalsIgnoreCase("/help");
+        return "/help".equalsIgnoreCase(text);
     }
 
     @Override
     public String handle(String userId, String text) {
-        return "Available commands: ping, help";
+        return "Available commands: /start, /help";
     }
 }

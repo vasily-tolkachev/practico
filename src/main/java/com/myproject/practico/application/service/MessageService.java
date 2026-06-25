@@ -15,6 +15,9 @@ public class MessageService implements ProcessIncomingMessageUseCase {
 
     @Override
     public void process(String userId, String text) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
 
         String response = commandRouter.route(userId, text);
 

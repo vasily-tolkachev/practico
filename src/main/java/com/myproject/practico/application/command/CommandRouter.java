@@ -14,6 +14,9 @@ public class CommandRouter {
     }
 
     public String route(String userId, String text) {
+        if (text == null || text.isBlank()) {
+            return fallback();
+        }
 
         for (Command command : commands) {
             if (command.supports(text)) {
@@ -21,10 +24,10 @@ public class CommandRouter {
             }
         }
 
-        return fallback(text);
+        return fallback();
     }
 
-    private String fallback(String text) {
+    private String fallback() {
         return "Unknown command. Type /help";
     }
 }
