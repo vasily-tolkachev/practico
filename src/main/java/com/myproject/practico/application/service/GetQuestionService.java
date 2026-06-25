@@ -1,17 +1,17 @@
 package com.myproject.practico.application.service;
 
-import com.myproject.practico.application.port.in.GetRandomQuestionUseCase;
+import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.domain.Question;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class RandomQuestionService implements GetRandomQuestionUseCase {
+public class GetQuestionService implements GetQuestionUseCase {
 
     private final QuestionPersistencePort questionPersistencePort;
 
-    public RandomQuestionService(QuestionPersistencePort questionPersistencePort) {
+    public GetQuestionService(QuestionPersistencePort questionPersistencePort) {
         this.questionPersistencePort = questionPersistencePort;
     }
 

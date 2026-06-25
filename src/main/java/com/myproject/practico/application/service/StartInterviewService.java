@@ -1,25 +1,21 @@
-package com.myproject.practico.adapter.in.web.telegram.command;
+package com.myproject.practico.application.service;
 
-import com.myproject.practico.application.port.in.GetRandomQuestionUseCase;
+import com.myproject.practico.application.port.in.GetQuestionUseCase;
+import com.myproject.practico.application.port.in.StartInterviewUseCase;
 import com.myproject.practico.domain.Question;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
-@RequiredArgsConstructor
-public class StartCommand implements TelegramCommand {
+public class StartInterviewService implements StartInterviewUseCase {
 
-    private final GetRandomQuestionUseCase getRandomQuestionUseCase;
+    private final GetQuestionUseCase getQuestionUseCase;
 
-    @Override
-    public boolean supports(String text) {
-        return "/start".equalsIgnoreCase(text);
+    public StartInterviewService(GetQuestionUseCase getQuestionUseCase) {
+        this.getQuestionUseCase = getQuestionUseCase;
     }
 
     @Override
-    public String handle(String userId, String text) {
+    public String start(String userId) {
         try {
-            Question question = getRandomQuestionUseCase.getRandom();
+            Question question = getQuestionUseCase.getRandom();
             return buildResponse(question);
         } catch (IllegalStateException ex) {
             return "No questions are available yet.";

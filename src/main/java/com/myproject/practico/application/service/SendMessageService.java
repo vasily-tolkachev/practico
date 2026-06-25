@@ -13,6 +13,10 @@ public class SendMessageService implements SendMessageUseCase {
 
     @Override
     public void send(String userId, String text) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId must not be blank");
+        }
+
         if (text == null || text.isBlank()) {
             return;
         }
