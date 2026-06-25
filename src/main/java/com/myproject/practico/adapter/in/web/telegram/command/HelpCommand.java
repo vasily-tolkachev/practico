@@ -1,8 +1,9 @@
-package com.myproject.practico.application.command.impl;
+package com.myproject.practico.adapter.in.web.telegram.command;
 
-import com.myproject.practico.application.command.Command;
+import org.springframework.stereotype.Component;
 
-public class HelpCommand implements Command {
+@Component
+public class HelpCommand implements TelegramCommand {
 
     @Override
     public boolean supports(String text) {

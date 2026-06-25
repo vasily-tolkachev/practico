@@ -1,16 +1,15 @@
-package com.myproject.practico.application.command.impl;
+package com.myproject.practico.adapter.in.web.telegram.command;
 
-import com.myproject.practico.application.command.Command;
 import com.myproject.practico.application.port.in.GetRandomQuestionUseCase;
 import com.myproject.practico.domain.Question;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
-public class StartCommand implements Command {
+@Component
+@RequiredArgsConstructor
+public class StartCommand implements TelegramCommand {
 
     private final GetRandomQuestionUseCase getRandomQuestionUseCase;
-
-    public StartCommand(GetRandomQuestionUseCase getRandomQuestionUseCase) {
-        this.getRandomQuestionUseCase = getRandomQuestionUseCase;
-    }
 
     @Override
     public boolean supports(String text) {

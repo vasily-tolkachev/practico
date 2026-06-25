@@ -1,12 +1,15 @@
-package com.myproject.practico.application.command;
+package com.myproject.practico.adapter.in.web.telegram.command;
+
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-public class CommandRouter {
+@Component
+public class TelegramCommandRouter {
 
-    private final List<Command> commands;
+    private final List<TelegramCommand> commands;
 
-    public CommandRouter(List<Command> commands) {
+    public TelegramCommandRouter(List<TelegramCommand> commands) {
         this.commands = commands;
     }
 
@@ -15,7 +18,7 @@ public class CommandRouter {
             return fallback();
         }
 
-        for (Command command : commands) {
+        for (TelegramCommand command : commands) {
             if (command.supports(text)) {
                 return command.handle(userId, text);
             }
