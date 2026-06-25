@@ -1,11 +1,12 @@
 package com.myproject.practico.adapter.in.telegram;
 
+import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
-public class TelegramCommandRouter {
+public class TelegramCommandRouter implements CommandInterpreterPort {
 
     private final List<TelegramCommand> commands;
 
@@ -13,7 +14,8 @@ public class TelegramCommandRouter {
         this.commands = commands;
     }
 
-    public String route(String userId, String text) {
+    @Override
+    public String interpret(String userId, String text) {
         if (text == null || text.isBlank()) {
             return fallback();
         }

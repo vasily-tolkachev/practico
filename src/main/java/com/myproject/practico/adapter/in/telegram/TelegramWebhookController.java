@@ -1,7 +1,7 @@
 package com.myproject.practico.adapter.in.telegram;
 
 import com.myproject.practico.adapter.in.telegram.dto.TelegramUpdate;
-import com.myproject.practico.application.port.out.MessengerPort;
+import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,8 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/telegram")
 public class TelegramWebhookController {
 
-    private final TelegramCommandRouter commandRouter;
-    private final MessengerPort messengerPort;
+    private final HandleIncomingMessageUseCase handleIncomingMessageUseCase;
 
     @PostMapping("/webhook")
     public void webhook(@RequestBody TelegramUpdate update) {
@@ -22,13 +21,9 @@ public class TelegramWebhookController {
             return;
         }
 
-        String userId = update.message().chat().id();
-        String response = commandRouter.route(userId, update.message().text());
-
-        if (response == null || response.isBlank()) {
-            return;
-        }
-
-        messengerPort.sendMessage(userId, response);
+        handleIncomingMessageUseCase.handle(
+                update.message().chat().id(),
+                update.message().text()
+        );
     }
 }
