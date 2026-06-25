@@ -1,4 +1,4 @@
-package com.myproject.practico.api.telegram;
+package com.myproject.practico.adapter.out.telegram;
 
 import com.myproject.practico.application.port.out.MessengerPort;
 import lombok.RequiredArgsConstructor;

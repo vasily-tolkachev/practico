@@ -1,4 +1,4 @@
-package com.myproject.practico.model;
+package com.myproject.practico.adapter.out.persistence.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Question {
+public class QuestionJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,6 +20,5 @@ public class Question {
 
     private String text;
     private String topic;
-
     private String difficulty;
 }

@@ -1,4 +1,4 @@
-package com.myproject.practico.api.telegram.dto;
+package com.myproject.practico.adapter.in.web.telegram.dto;
 
 public record TelegramUpdate(
         Message message

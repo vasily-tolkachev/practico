@@ -1,4 +1,4 @@
-package com.myproject.practico.api.telegram;
+package com.myproject.practico.adapter.out.telegram;
 
 import com.myproject.practico.config.TelegramProperties;
 import lombok.RequiredArgsConstructor;
@@ -11,24 +11,14 @@ public class TelegramClient {
 
     private final TelegramProperties config;
 
-    public void sendMessage(
-            String chatId,
-            String text
-    ) {
-
+    public void sendMessage(String chatId, String text) {
         RestClient restClient = RestClient.builder()
-                .baseUrl(
-                        "https://api.telegram.org/bot"
-                                + config.botToken()
-                )
+                .baseUrl("https://api.telegram.org/bot" + config.botToken())
                 .build();
 
         restClient.post()
                 .uri("/sendMessage")
-                .body(new SendMessageRequest(
-                        chatId,
-                        text
-                ))
+                .body(new SendMessageRequest(chatId, text))
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -36,6 +26,5 @@ public class TelegramClient {
     private record SendMessageRequest(
             String chat_id,
             String text
-    ) {
-    }
+    ) {}
 }
