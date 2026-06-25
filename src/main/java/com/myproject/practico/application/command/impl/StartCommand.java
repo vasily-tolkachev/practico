@@ -3,14 +3,14 @@ package com.myproject.practico.application.command.impl;
 import com.myproject.practico.application.command.Command;
 import com.myproject.practico.application.port.in.GetRandomQuestionUseCase;
 import com.myproject.practico.domain.Question;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
-@RequiredArgsConstructor
 public class StartCommand implements Command {
 
     private final GetRandomQuestionUseCase getRandomQuestionUseCase;
+
+    public StartCommand(GetRandomQuestionUseCase getRandomQuestionUseCase) {
+        this.getRandomQuestionUseCase = getRandomQuestionUseCase;
+    }
 
     @Override
     public boolean supports(String text) {

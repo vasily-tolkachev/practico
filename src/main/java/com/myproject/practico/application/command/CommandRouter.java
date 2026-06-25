@@ -1,10 +1,7 @@
 package com.myproject.practico.application.command;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 
-@Component
 public class CommandRouter {
 
     private final List<Command> commands;

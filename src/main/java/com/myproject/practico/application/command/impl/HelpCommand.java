@@ -1,9 +1,7 @@
 package com.myproject.practico.application.command.impl;
 
 import com.myproject.practico.application.command.Command;
-import org.springframework.stereotype.Component;
 
-@Component
 public class HelpCommand implements Command {
 
     @Override
