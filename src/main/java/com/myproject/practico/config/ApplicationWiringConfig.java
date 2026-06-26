@@ -5,9 +5,11 @@ import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
 import com.myproject.practico.application.port.in.StartInterviewUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AiEvaluationPort;
+import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.MessengerPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.AiEvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
@@ -53,12 +55,16 @@ public class ApplicationWiringConfig {
     public SubmitAnswerUseCase submitAnswerUseCase(
             SessionService sessionService,
             GetQuestionUseCase getQuestionUseCase,
-            AiEvaluationService aiEvaluationService
+            AiEvaluationService aiEvaluationService,
+            UserPersistencePort userPersistencePort,
+            AnswerPersistencePort answerPersistencePort
     ) {
         return new SubmitAnswerService(
                 sessionService,
                 getQuestionUseCase,
-                aiEvaluationService
+                aiEvaluationService,
+                userPersistencePort,
+                answerPersistencePort
         );
     }
 

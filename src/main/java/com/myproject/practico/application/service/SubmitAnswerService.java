@@ -2,22 +2,34 @@ package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
+import com.myproject.practico.application.port.out.AnswerPersistencePort;
+import com.myproject.practico.application.port.out.UserPersistencePort;
+import com.myproject.practico.domain.Answer;
 import com.myproject.practico.domain.Question;
+import com.myproject.practico.domain.User;
+
+import java.time.Instant;
 
 public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     private final SessionService sessionService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final AiEvaluationService aiEvaluationService;
+    private final UserPersistencePort userPersistencePort;
+    private final AnswerPersistencePort answerPersistencePort;
 
     public SubmitAnswerService(
             SessionService sessionService,
             GetQuestionUseCase getQuestionUseCase,
-            AiEvaluationService aiEvaluationService
+            AiEvaluationService aiEvaluationService,
+            UserPersistencePort userPersistencePort,
+            AnswerPersistencePort answerPersistencePort
     ) {
         this.sessionService = sessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.aiEvaluationService = aiEvaluationService;
+        this.userPersistencePort = userPersistencePort;
+        this.answerPersistencePort = answerPersistencePort;
     }
 
     @Override
@@ -39,6 +51,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
+        persistAnswer(userId, currentQuestion, answer, aiResponse);
 
         String nextDifficulty = sessionService.nextDifficulty(session, aiResponse.score());
         Question nextQuestion = getQuestionUseCase
@@ -76,5 +89,19 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         return response.toString();
+    }
+
+    private void persistAnswer(String userId, Question currentQuestion, String answerText, AiResponse aiResponse) {
+        Instant now = Instant.now();
+        User user = userPersistencePort.upsertByTelegramId(userId, now);
+        answerPersistencePort.save(new Answer(
+                null,
+                user.id(),
+                currentQuestion.id(),
+                answerText,
+                aiResponse.score(),
+                aiResponse.feedback(),
+                now
+        ));
     }
 }
