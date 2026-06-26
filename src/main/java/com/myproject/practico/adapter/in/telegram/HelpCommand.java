@@ -12,6 +12,6 @@ public class HelpCommand implements TelegramCommand {
 
     @Override
     public String handle(String userId, String text) {
-        return "Available commands: /start, /help";
+        return "Available commands: /start, /help\nAfter /start, send your answer as a regular message.";
     }
 }

@@ -7,15 +7,21 @@ import com.myproject.practico.domain.Question;
 public class StartInterviewService implements StartInterviewUseCase {
 
     private final GetQuestionUseCase getQuestionUseCase;
+    private final UserSessionStore userSessionStore;
 
-    public StartInterviewService(GetQuestionUseCase getQuestionUseCase) {
+    public StartInterviewService(
+            GetQuestionUseCase getQuestionUseCase,
+            UserSessionStore userSessionStore
+    ) {
         this.getQuestionUseCase = getQuestionUseCase;
+        this.userSessionStore = userSessionStore;
     }
 
     @Override
     public String start(String userId) {
         try {
             Question question = getQuestionUseCase.getRandom();
+            userSessionStore.put(userId, question.id());
             return buildResponse(question);
         } catch (IllegalStateException ex) {
             return "No questions are available yet.";

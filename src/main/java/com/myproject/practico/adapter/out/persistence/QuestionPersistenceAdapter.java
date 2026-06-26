@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,6 +21,12 @@ public class QuestionPersistenceAdapter implements QuestionPersistencePort {
                 .stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Question> findById(Long id) {
+        return questionJpaRepository.findById(id)
+                .map(this::toDomain);
     }
 
     private Question toDomain(QuestionJpaEntity entity) {

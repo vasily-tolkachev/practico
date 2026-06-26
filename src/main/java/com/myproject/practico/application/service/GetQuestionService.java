@@ -5,6 +5,7 @@ import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.domain.Question;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class GetQuestionService implements GetQuestionUseCase {
@@ -24,5 +25,14 @@ public class GetQuestionService implements GetQuestionUseCase {
         }
 
         return questions.get(ThreadLocalRandom.current().nextInt(questions.size()));
+    }
+
+    @Override
+    public Optional<Question> getById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+
+        return questionPersistencePort.findById(id);
     }
 }
