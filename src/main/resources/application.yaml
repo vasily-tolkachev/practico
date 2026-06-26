@@ -1,15 +1,13 @@
 telegram:
-  #bot-token: ${TELEGRAM_BOT_TOKEN}
-  bot-token: 8792446848:AAFgT9hRr3teI_zMt2v2W9aDdzqCyjvEEOw
-  #webhook-secret: ${TELEGRAM_WEBHOOK_SECRET}
+  bot-token: ${TELEGRAM_BOT_TOKEN}
 openai:
   api-key: ${OPENAI_API_KEY:}
-  model: ${OPENAI_MODEL:gpt-4.1-mini}
+  model: ${OPENAI_MODEL:gpt-5-mini}
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/practico
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/practico}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   jpa:
     hibernate:

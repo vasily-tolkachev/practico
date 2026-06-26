@@ -6,16 +6,16 @@ import com.myproject.practico.domain.Question;
 
 public class SubmitAnswerService implements SubmitAnswerUseCase {
 
-    private final UserSessionStore userSessionStore;
+    private final SessionService sessionService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final AiEvaluationService aiEvaluationService;
 
     public SubmitAnswerService(
-            UserSessionStore userSessionStore,
+            SessionService sessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService
     ) {
-        this.userSessionStore = userSessionStore;
+        this.sessionService = sessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.aiEvaluationService = aiEvaluationService;
     }
@@ -26,7 +26,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             return "Please send a non-empty answer.";
         }
 
-        UserSessionStore.UserSession session = userSessionStore.get(userId).orElse(null);
+        UserSessionStore.UserSession session = sessionService.getSession(userId).orElse(null);
 
         if (session == null) {
             return "No active interview. Send /start to begin.";
@@ -40,24 +40,39 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
 
-        Question nextQuestion;
-        try {
-            nextQuestion = getQuestionUseCase.getRandom();
-        } catch (IllegalStateException ex) {
-            return buildFinalResponse(aiResponse, null);
-        }
+        String nextDifficulty = sessionService.nextDifficulty(session, aiResponse.score());
+        Question nextQuestion = getQuestionUseCase
+                .getNext(nextDifficulty, sessionService.excludedQuestionIds(session))
+                .orElse(null);
 
-        userSessionStore.put(userId, nextQuestion.id());
-        return buildFinalResponse(aiResponse, nextQuestion);
+        sessionService.recordAnswerAndSetNextQuestion(
+                userId,
+                aiResponse.score(),
+                nextQuestion == null ? null : nextQuestion.id()
+        );
+
+        UserSessionStore.UserSession updatedSession = sessionService.getSession(userId).orElse(session);
+        return buildFinalResponse(aiResponse, nextQuestion, updatedSession);
     }
 
-    private String buildFinalResponse(AiResponse aiResponse, Question nextQuestion) {
+    private String buildFinalResponse(
+            AiResponse aiResponse,
+            Question nextQuestion,
+            UserSessionStore.UserSession session
+    ) {
         StringBuilder response = new StringBuilder();
-        response.append("Score: ").append(aiResponse.score()).append("/10\n\n");
-        response.append("Feedback:\n").append(aiResponse.feedback());
+        response.append("✅ Score: ").append(aiResponse.score()).append("/10\n\n");
+        response.append("📈 Progress: answered ").append(session.answeredCount()).append(" questions");
+        response.append(", average ").append(String.format("%.1f", sessionService.averageLastScores(session))).append("/10\n\n");
+        response.append("💡 Feedback:\n").append(aiResponse.feedback());
 
         if (nextQuestion != null) {
-            response.append("\n\nNext question:\n").append(nextQuestion.text());
+            if (nextQuestion.topic() != null && !nextQuestion.topic().isBlank()) {
+                response.append("\n\n📚 Topic: ").append(nextQuestion.topic());
+            }
+            response.append("\n\n❓ Next question:\n").append(nextQuestion.text());
+        } else {
+            response.append("\n\n🏁 No more new questions in this session. Send /start to restart.");
         }
 
         return response.toString();

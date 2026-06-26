@@ -11,6 +11,7 @@ import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.service.AiEvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
+import com.myproject.practico.application.service.SessionService;
 import com.myproject.practico.application.service.StartInterviewService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.UserSessionStore;
@@ -36,21 +37,26 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public SessionService sessionService(UserSessionStore userSessionStore) {
+        return new SessionService(userSessionStore);
+    }
+
+    @Bean
     public StartInterviewUseCase startInterviewUseCase(
             GetQuestionUseCase getQuestionUseCase,
-            UserSessionStore userSessionStore
+            SessionService sessionService
     ) {
-        return new StartInterviewService(getQuestionUseCase, userSessionStore);
+        return new StartInterviewService(getQuestionUseCase, sessionService);
     }
 
     @Bean
     public SubmitAnswerUseCase submitAnswerUseCase(
-            UserSessionStore userSessionStore,
+            SessionService sessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService
     ) {
         return new SubmitAnswerService(
-                userSessionStore,
+                sessionService,
                 getQuestionUseCase,
                 aiEvaluationService
         );
