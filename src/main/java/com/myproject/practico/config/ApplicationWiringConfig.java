@@ -14,6 +14,7 @@ import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.AiEvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
+import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
@@ -53,6 +54,21 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public LearningEngine learningEngine(
+            AiEvaluationService aiEvaluationService,
+            UserConceptProgressService userConceptProgressService,
+            GetQuestionUseCase getQuestionUseCase,
+            LearningSessionService learningSessionService
+    ) {
+        return new LearningEngine(
+                aiEvaluationService,
+                userConceptProgressService,
+                getQuestionUseCase,
+                learningSessionService
+        );
+    }
+
+    @Bean
     public StartLearningUseCase startLearningUseCase(
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService
@@ -64,16 +80,14 @@ public class ApplicationWiringConfig {
     public SubmitAnswerUseCase submitAnswerUseCase(
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
-            AiEvaluationService aiEvaluationService,
-            UserConceptProgressService userConceptProgressService,
+            LearningEngine learningEngine,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
         return new SubmitAnswerService(
                 learningSessionService,
                 getQuestionUseCase,
-                aiEvaluationService,
-                userConceptProgressService,
+                learningEngine,
                 userPersistencePort,
                 answerPersistencePort
         );

@@ -5,9 +5,7 @@ import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.domain.Answer;
-import com.myproject.practico.domain.ProgressStatus;
 import com.myproject.practico.domain.Question;
-import com.myproject.practico.domain.UserConceptProgress;
 import com.myproject.practico.domain.User;
 
 import java.time.Instant;
@@ -16,23 +14,20 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
-    private final AiEvaluationService aiEvaluationService;
-    private final UserConceptProgressService userConceptProgressService;
+    private final LearningEngine learningEngine;
     private final UserPersistencePort userPersistencePort;
     private final AnswerPersistencePort answerPersistencePort;
 
     public SubmitAnswerService(
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
-            AiEvaluationService aiEvaluationService,
-            UserConceptProgressService userConceptProgressService,
+            LearningEngine learningEngine,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
-        this.aiEvaluationService = aiEvaluationService;
-        this.userConceptProgressService = userConceptProgressService;
+        this.learningEngine = learningEngine;
         this.userPersistencePort = userPersistencePort;
         this.answerPersistencePort = answerPersistencePort;
     }
@@ -55,31 +50,19 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             return "Current question was not found. Send /start to restart.";
         }
 
-        AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
         Instant now = Instant.now();
         User user = userPersistencePort.upsertByTelegramId(userId, now);
-        persistAnswer(user, currentQuestion, answer, aiResponse, now);
-
-        Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
-        if (conceptId == null) {
+        LearningResult learningResult;
+        try {
+            learningResult = learningEngine.handleAnswer(user.id(), currentQuestion, answer, session, now);
+        } catch (IllegalStateException ex) {
             return "Current question concept was not found. Send /start to restart.";
         }
 
-        UserConceptProgress conceptProgress = userConceptProgressService.update(
-                user.id(),
-                conceptId,
-                aiResponse.score(),
-                now
-        );
+        AiResponse aiResponse = learningResult.aiResponse();
+        Question nextQuestion = learningResult.nextQuestion();
+        persistAnswer(user, currentQuestion, answer, aiResponse, now);
 
-        String nextDifficulty = learningSessionService.nextDifficulty(session, aiResponse.score());
-        Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
-                ? getQuestionUseCase
-                .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
-                .orElse(null)
-                : getQuestionUseCase
-                .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
-                .orElse(null);
 
         learningSessionService.recordAnswerAndSetNextQuestion(
                 userId,
