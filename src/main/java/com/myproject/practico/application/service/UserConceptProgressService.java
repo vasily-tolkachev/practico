@@ -1,0 +1,52 @@
+package com.myproject.practico.application.service;
+
+import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
+import com.myproject.practico.domain.ProgressStatus;
+import com.myproject.practico.domain.UserConceptProgress;
+
+import java.time.Instant;
+
+public class UserConceptProgressService {
+
+    private final UserConceptProgressPersistencePort userConceptProgressPersistencePort;
+
+    public UserConceptProgressService(UserConceptProgressPersistencePort userConceptProgressPersistencePort) {
+        this.userConceptProgressPersistencePort = userConceptProgressPersistencePort;
+    }
+
+    public UserConceptProgress update(Long userId, Long conceptId, int score, Instant updatedAt) {
+        UserConceptProgress existing = userConceptProgressPersistencePort
+                .findByUserIdAndConceptId(userId, conceptId)
+                .orElse(null);
+
+        int totalAnswers = existing == null ? 1 : existing.totalAnswers() + 1;
+        int correctAnswers = existing == null
+                ? (isCorrect(score) ? 1 : 0)
+                : existing.correctAnswers() + (isCorrect(score) ? 1 : 0);
+
+        ProgressStatus status = resolveStatus(score);
+
+        return userConceptProgressPersistencePort.upsert(
+                userId,
+                conceptId,
+                status,
+                correctAnswers,
+                totalAnswers,
+                updatedAt
+        );
+    }
+
+    private boolean isCorrect(int score) {
+        return score >= 8;
+    }
+
+    private ProgressStatus resolveStatus(int score) {
+        if (score < 5) {
+            return ProgressStatus.LEARNING;
+        }
+        if (score < 8) {
+            return ProgressStatus.IN_PROGRESS;
+        }
+        return ProgressStatus.MASTERED;
+    }
+}
