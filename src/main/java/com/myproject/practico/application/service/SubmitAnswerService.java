@@ -5,7 +5,9 @@ import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.domain.Answer;
+import com.myproject.practico.domain.ProgressStatus;
 import com.myproject.practico.domain.Question;
+import com.myproject.practico.domain.UserConceptProgress;
 import com.myproject.practico.domain.User;
 
 import java.time.Instant;
@@ -15,6 +17,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
     private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final AiEvaluationService aiEvaluationService;
+    private final UserConceptProgressService userConceptProgressService;
     private final UserPersistencePort userPersistencePort;
     private final AnswerPersistencePort answerPersistencePort;
 
@@ -22,12 +25,14 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService,
+            UserConceptProgressService userConceptProgressService,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.aiEvaluationService = aiEvaluationService;
+        this.userConceptProgressService = userConceptProgressService;
         this.userPersistencePort = userPersistencePort;
         this.answerPersistencePort = answerPersistencePort;
     }
@@ -51,11 +56,29 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
-        persistAnswer(userId, currentQuestion, answer, aiResponse);
+        Instant now = Instant.now();
+        User user = userPersistencePort.upsertByTelegramId(userId, now);
+        persistAnswer(user, currentQuestion, answer, aiResponse, now);
+
+        Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
+        if (conceptId == null) {
+            return "Current question concept was not found. Send /start to restart.";
+        }
+
+        UserConceptProgress conceptProgress = userConceptProgressService.update(
+                user.id(),
+                conceptId,
+                aiResponse.score(),
+                now
+        );
 
         String nextDifficulty = learningSessionService.nextDifficulty(session, aiResponse.score());
-        Question nextQuestion = getQuestionUseCase
-                .getNext(nextDifficulty, learningSessionService.excludedQuestionIds(session))
+        Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
+                ? getQuestionUseCase
+                .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
+                .orElse(null)
+                : getQuestionUseCase
+                .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
         learningSessionService.recordAnswerAndSetNextQuestion(
@@ -92,9 +115,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         return response.toString();
     }
 
-    private void persistAnswer(String userId, Question currentQuestion, String answerText, AiResponse aiResponse) {
-        Instant now = Instant.now();
-        User user = userPersistencePort.upsertByTelegramId(userId, now);
+    private void persistAnswer(User user, Question currentQuestion, String answerText, AiResponse aiResponse, Instant now) {
         answerPersistencePort.save(new Answer(
                 null,
                 user.id(),

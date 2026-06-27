@@ -8,5 +8,9 @@ import java.util.Set;
 public interface GetQuestionUseCase {
     Optional<Question> getNext(String preferredDifficulty, Set<Long> excludedQuestionIds);
 
+    Optional<Question> getNextInConcept(Long conceptId, String preferredDifficulty, Set<Long> excludedQuestionIds);
+
+    Optional<Question> getNextFromNextConcept(Long currentConceptId, String preferredDifficulty, Set<Long> excludedQuestionIds);
+
     Optional<Question> getById(Long id);
 }

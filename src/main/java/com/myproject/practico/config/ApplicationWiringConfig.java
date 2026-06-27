@@ -9,6 +9,7 @@ import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.MessengerPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.AiEvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
@@ -17,6 +18,7 @@ import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.LearningSessionStore;
+import com.myproject.practico.application.service.UserConceptProgressService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,6 +46,13 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public UserConceptProgressService userConceptProgressService(
+            UserConceptProgressPersistencePort userConceptProgressPersistencePort
+    ) {
+        return new UserConceptProgressService(userConceptProgressPersistencePort);
+    }
+
+    @Bean
     public StartLearningUseCase startLearningUseCase(
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService
@@ -56,6 +65,7 @@ public class ApplicationWiringConfig {
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService,
+            UserConceptProgressService userConceptProgressService,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
@@ -63,6 +73,7 @@ public class ApplicationWiringConfig {
                 learningSessionService,
                 getQuestionUseCase,
                 aiEvaluationService,
+                userConceptProgressService,
                 userPersistencePort,
                 answerPersistencePort
         );
