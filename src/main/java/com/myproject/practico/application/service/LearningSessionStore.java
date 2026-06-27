@@ -13,8 +13,8 @@ public class LearningSessionStore {
 
     private final Map<String, LearningSession> sessions = new ConcurrentHashMap<>();
 
-    public void startLearningSession(String userId, Long questionId) {
-        sessions.put(userId, LearningSession.started(userId, questionId));
+    public void startLearningSession(String userId, Long conceptId, Long questionId) {
+        sessions.put(userId, LearningSession.started(userId, conceptId, questionId));
     }
 
     public void recordAnswerAndSetNextQuestion(String userId, int score, Long nextQuestionId) {
@@ -27,7 +27,9 @@ public class LearningSessionStore {
 
     public record LearningSession(
             String userId,
+            Long currentConceptId,
             Long currentQuestionId,
+            LearningPhase phase,
             Deque<Integer> lastScores,
             Deque<Long> answeredQuestionIds,
             int answeredCount
@@ -37,8 +39,16 @@ public class LearningSessionStore {
             answeredQuestionIds = new ArrayDeque<>(answeredQuestionIds);
         }
 
-        public static LearningSession started(String userId, Long questionId) {
-            return new LearningSession(userId, questionId, new ArrayDeque<>(), new ArrayDeque<>(), 0);
+        public static LearningSession started(String userId, Long conceptId, Long questionId) {
+            return new LearningSession(
+                    userId,
+                    conceptId,
+                    questionId,
+                    LearningPhase.QUESTION,
+                    new ArrayDeque<>(),
+                    new ArrayDeque<>(),
+                    0
+            );
         }
 
         @Override
@@ -75,7 +85,9 @@ public class LearningSessionStore {
 
             return new LearningSession(
                     this.userId,
+                    this.currentConceptId,
                     nextQuestionId,
+                    this.phase,
                     updatedScores,
                     updatedAnsweredQuestionIds,
                     this.answeredCount + 1

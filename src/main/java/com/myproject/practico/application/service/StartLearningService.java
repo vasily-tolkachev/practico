@@ -26,7 +26,8 @@ public class StartLearningService implements StartLearningUseCase {
                     .getNext(learningSessionService.firstDifficulty(), Set.of())
                     .orElseThrow(() -> new IllegalStateException("No questions found"));
 
-            learningSessionService.startLearningSession(userId, question.id());
+            Long conceptId = question.concept() == null ? null : question.concept().id();
+            learningSessionService.startLearningSession(userId, conceptId, question.id());
             return buildResponse(question);
         } catch (IllegalStateException ex) {
             return "No questions are available yet.";

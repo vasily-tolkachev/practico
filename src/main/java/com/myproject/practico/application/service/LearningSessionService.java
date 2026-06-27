@@ -26,8 +26,8 @@ public class LearningSessionService {
         return learningSessionStore.get(userId);
     }
 
-    public void startLearningSession(String userId, Long firstQuestionId) {
-        learningSessionStore.startLearningSession(userId, firstQuestionId);
+    public void startLearningSession(String userId, Long firstConceptId, Long firstQuestionId) {
+        learningSessionStore.startLearningSession(userId, firstConceptId, firstQuestionId);
     }
 
     public void recordAnswerAndSetNextQuestion(String userId, int score, Long nextQuestionId) {
