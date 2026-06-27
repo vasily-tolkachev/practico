@@ -34,6 +34,14 @@ public class LearningSessionService {
         learningSessionStore.recordAnswerAndSetNextQuestion(userId, score, nextQuestionId);
     }
 
+    public void setPhase(String userId, LearningPhase phase) {
+        learningSessionStore.setPhase(userId, phase);
+    }
+
+    public void setCurrentQuestion(String userId, Long conceptId, Long questionId) {
+        learningSessionStore.setCurrentQuestion(userId, conceptId, questionId);
+    }
+
     public Difficulty firstDifficulty() {
         return Difficulty.EASY;
     }

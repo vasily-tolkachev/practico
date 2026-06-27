@@ -69,6 +69,14 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         };
 
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
+        if (learningResult.nextStep() != LearningStepType.COMPLETED) {
+            learningSessionService.setPhase(userId, toPhase(learningResult.nextStep()));
+        }
+        if (learningResult.nextStep() == LearningStepType.QUESTION && nextQuestion != null && nextQuestion.concept() != null) {
+            learningSessionService.setCurrentQuestion(userId, nextQuestion.concept().id(), nextQuestion.id());
+        } else if (learningResult.nextStep() == LearningStepType.COMPLETED) {
+            learningSessionService.setCurrentQuestion(userId, null, null);
+        }
 
         LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
         return buildFinalResponse(learningResult, updatedSession);
@@ -119,5 +127,13 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                 evaluation.evaluation(),
                 now
         ));
+    }
+
+    private LearningPhase toPhase(LearningStepType stepType) {
+        return switch (stepType) {
+            case QUESTION -> LearningPhase.QUESTION;
+            case LEARNING_CARD -> LearningPhase.LEARNING_CARD;
+            case COMPLETED -> throw new IllegalArgumentException("COMPLETED has no session phase mapping");
+        };
     }
 }

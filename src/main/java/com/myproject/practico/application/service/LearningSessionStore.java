@@ -21,6 +21,14 @@ public class LearningSessionStore {
         sessions.computeIfPresent(userId, (id, session) -> session.recordAnswer(score, nextQuestionId));
     }
 
+    public void setPhase(String userId, LearningPhase phase) {
+        sessions.computeIfPresent(userId, (id, session) -> session.withPhase(phase));
+    }
+
+    public void setCurrentQuestion(String userId, Long conceptId, Long questionId) {
+        sessions.computeIfPresent(userId, (id, session) -> session.withCurrentQuestion(conceptId, questionId));
+    }
+
     public Optional<LearningSession> get(String userId) {
         return Optional.ofNullable(sessions.get(userId));
     }
@@ -91,6 +99,30 @@ public class LearningSessionStore {
                     updatedScores,
                     updatedAnsweredQuestionIds,
                     this.answeredCount + 1
+            );
+        }
+
+        public LearningSession withPhase(LearningPhase phase) {
+            return new LearningSession(
+                    this.userId,
+                    this.currentConceptId,
+                    this.currentQuestionId,
+                    phase,
+                    this.lastScores,
+                    this.answeredQuestionIds,
+                    this.answeredCount
+            );
+        }
+
+        public LearningSession withCurrentQuestion(Long conceptId, Long questionId) {
+            return new LearningSession(
+                    this.userId,
+                    conceptId,
+                    questionId,
+                    this.phase,
+                    this.lastScores,
+                    this.answeredQuestionIds,
+                    this.answeredCount
             );
         }
     }
