@@ -1,5 +1,8 @@
 package com.myproject.practico.application.service;
 
+import com.myproject.practico.domain.LearningCard;
+import com.myproject.practico.domain.QuickCheck;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -29,6 +32,10 @@ public class LearningSessionStore {
         sessions.computeIfPresent(userId, (id, session) -> session.withCurrentQuestion(conceptId, questionId));
     }
 
+    public void setPendingMaterials(String userId, LearningCard pendingLearningCard, QuickCheck pendingQuickCheck) {
+        sessions.computeIfPresent(userId, (id, session) -> session.withPendingMaterials(pendingLearningCard, pendingQuickCheck));
+    }
+
     public Optional<LearningSession> get(String userId) {
         return Optional.ofNullable(sessions.get(userId));
     }
@@ -38,6 +45,8 @@ public class LearningSessionStore {
             Long currentConceptId,
             Long currentQuestionId,
             LearningPhase phase,
+            LearningCard pendingLearningCard,
+            QuickCheck pendingQuickCheck,
             Deque<Integer> lastScores,
             Deque<Long> answeredQuestionIds,
             int answeredCount
@@ -53,6 +62,8 @@ public class LearningSessionStore {
                     conceptId,
                     questionId,
                     LearningPhase.QUESTION,
+                    null,
+                    null,
                     new ArrayDeque<>(),
                     new ArrayDeque<>(),
                     0
@@ -96,6 +107,8 @@ public class LearningSessionStore {
                     this.currentConceptId,
                     nextQuestionId,
                     this.phase,
+                    this.pendingLearningCard,
+                    this.pendingQuickCheck,
                     updatedScores,
                     updatedAnsweredQuestionIds,
                     this.answeredCount + 1
@@ -108,6 +121,8 @@ public class LearningSessionStore {
                     this.currentConceptId,
                     this.currentQuestionId,
                     phase,
+                    this.pendingLearningCard,
+                    this.pendingQuickCheck,
                     this.lastScores,
                     this.answeredQuestionIds,
                     this.answeredCount
@@ -120,6 +135,22 @@ public class LearningSessionStore {
                     conceptId,
                     questionId,
                     this.phase,
+                    this.pendingLearningCard,
+                    this.pendingQuickCheck,
+                    this.lastScores,
+                    this.answeredQuestionIds,
+                    this.answeredCount
+            );
+        }
+
+        public LearningSession withPendingMaterials(LearningCard pendingLearningCard, QuickCheck pendingQuickCheck) {
+            return new LearningSession(
+                    this.userId,
+                    this.currentConceptId,
+                    this.currentQuestionId,
+                    this.phase,
+                    pendingLearningCard,
+                    pendingQuickCheck,
                     this.lastScores,
                     this.answeredQuestionIds,
                     this.answeredCount

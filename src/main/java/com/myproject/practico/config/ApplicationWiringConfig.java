@@ -97,11 +97,13 @@ public class ApplicationWiringConfig {
     public HandleIncomingMessageUseCase handleIncomingMessageUseCase(
             CommandInterpreterPort commandInterpreterPort,
             SubmitAnswerUseCase submitAnswerUseCase,
+            LearningSessionService learningSessionService,
             MessengerPort messengerPort
     ) {
         return new HandleIncomingMessageService(
                 commandInterpreterPort,
                 submitAnswerUseCase,
+                learningSessionService,
                 messengerPort
         );
     }

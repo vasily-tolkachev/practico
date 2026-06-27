@@ -9,15 +9,18 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
 
     private final CommandInterpreterPort commandInterpreterPort;
     private final SubmitAnswerUseCase submitAnswerUseCase;
+    private final LearningSessionService learningSessionService;
     private final MessengerPort messengerPort;
 
     public HandleIncomingMessageService(
             CommandInterpreterPort commandInterpreterPort,
             SubmitAnswerUseCase submitAnswerUseCase,
+            LearningSessionService learningSessionService,
             MessengerPort messengerPort
     ) {
         this.commandInterpreterPort = commandInterpreterPort;
         this.submitAnswerUseCase = submitAnswerUseCase;
+        this.learningSessionService = learningSessionService;
         this.messengerPort = messengerPort;
     }
 
@@ -31,7 +34,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
         if (text != null && text.startsWith("/")) {
             response = commandInterpreterPort.interpret(userId, text);
         } else {
-            response = submitAnswerUseCase.submit(userId, text);
+            response = handleByPhase(userId, text);
         }
 
         if (response == null || response.isBlank()) {
@@ -39,5 +42,22 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
         }
 
         messengerPort.sendMessage(userId, response);
+    }
+
+    private String handleByPhase(String userId, String text) {
+        LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
+        if (session == null) {
+            return submitAnswerUseCase.submit(userId, text);
+        }
+
+        if (session.phase() == LearningPhase.LEARNING_CARD) {
+            learningSessionService.setPhase(userId, LearningPhase.QUICK_CHECK);
+            if (session.pendingQuickCheck() == null || session.pendingQuickCheck().question() == null || session.pendingQuickCheck().question().isBlank()) {
+                return "Quick check is unavailable. Please continue with the next answer.";
+            }
+            return "Quick check:\n" + session.pendingQuickCheck().question();
+        }
+
+        return submitAnswerUseCase.submit(userId, text);
     }
 }

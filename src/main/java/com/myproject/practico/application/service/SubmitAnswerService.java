@@ -71,6 +71,11 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
         learningSessionService.setPhase(userId, learningResult.nextPhase());
+        if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
+            learningSessionService.setPendingMaterials(userId, evaluation.learningCard(), evaluation.quickCheck());
+        } else {
+            learningSessionService.setPendingMaterials(userId, null, null);
+        }
         if (learningResult.nextPhase() == LearningPhase.QUESTION && nextQuestion != null && nextQuestion.concept() != null) {
             learningSessionService.setCurrentQuestion(userId, nextQuestion.concept().id(), nextQuestion.id());
         } else if (learningResult.nextPhase() == LearningPhase.COMPLETED) {
@@ -99,6 +104,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             } else {
                 response.append("\n\nLearning card:\nReview the concept and try again.");
             }
+            response.append("\n\nWhen you are ready, send any message (for example, \"ready\") to move to a quick check.");
             return response.toString();
         }
 

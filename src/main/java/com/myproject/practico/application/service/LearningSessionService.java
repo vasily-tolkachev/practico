@@ -1,6 +1,8 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.domain.Difficulty;
+import com.myproject.practico.domain.LearningCard;
+import com.myproject.practico.domain.QuickCheck;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -40,6 +42,10 @@ public class LearningSessionService {
 
     public void setCurrentQuestion(String userId, Long conceptId, Long questionId) {
         learningSessionStore.setCurrentQuestion(userId, conceptId, questionId);
+    }
+
+    public void setPendingMaterials(String userId, LearningCard pendingLearningCard, QuickCheck pendingQuickCheck) {
+        learningSessionStore.setPendingMaterials(userId, pendingLearningCard, pendingQuickCheck);
     }
 
     public Difficulty firstDifficulty() {
