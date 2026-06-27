@@ -62,28 +62,41 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         Question nextQuestion = learningResult.nextQuestion();
         persistAnswer(user, currentQuestion, answer, evaluation, now);
 
-        learningSessionService.recordAnswerAndSetNextQuestion(
-                userId,
-                evaluation.score(),
-                nextQuestion == null ? null : nextQuestion.id()
-        );
+        Long nextQuestionId = switch (learningResult.nextStep()) {
+            case LEARNING_CARD -> currentQuestion.id();
+            case QUESTION -> nextQuestion == null ? null : nextQuestion.id();
+            case COMPLETED -> null;
+        };
+
+        learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
 
         LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
-        return buildFinalResponse(evaluation, nextQuestion, updatedSession);
+        return buildFinalResponse(learningResult, updatedSession);
     }
 
     private String buildFinalResponse(
-            EvaluationResult evaluation,
-            Question nextQuestion,
+            LearningResult learningResult,
             LearningSessionStore.LearningSession session
     ) {
+        EvaluationResult evaluation = learningResult.evaluation();
         StringBuilder response = new StringBuilder();
         response.append("Score: ").append(evaluation.score()).append("/10\n\n");
         response.append("Learning progress: answered ").append(session.answeredCount()).append(" questions");
         response.append(", average ").append(String.format("%.1f", learningSessionService.averageLastScores(session))).append("/10\n\n");
-        response.append("Feedback:\n").append(evaluation.feedback());
+        response.append("Evaluation:\n").append(evaluation.evaluation());
 
-        if (nextQuestion != null) {
+        if (learningResult.nextStep() == LearningStepType.LEARNING_CARD) {
+            if (evaluation.learningCard() != null) {
+                response.append("\n\nLearning card: ").append(evaluation.learningCard().title());
+                response.append("\n").append(evaluation.learningCard().explanation());
+            } else {
+                response.append("\n\nLearning card:\nReview the concept and try again.");
+            }
+            return response.toString();
+        }
+
+        Question nextQuestion = learningResult.nextQuestion();
+        if (nextQuestion != null && learningResult.nextStep() == LearningStepType.QUESTION) {
             if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
                 response.append("\n\nTopic: ").append(nextQuestion.concept().topic().name());
                 response.append("\nConcept: ").append(nextQuestion.concept().name());
@@ -103,7 +116,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                 currentQuestion.id(),
                 answerText,
                 evaluation.score(),
-                evaluation.feedback(),
+                evaluation.evaluation(),
                 now
         ));
     }

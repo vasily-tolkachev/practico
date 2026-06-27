@@ -47,6 +47,10 @@ public class LearningEngine {
                 now
         );
 
+        if (evaluationResult.score() < 8) {
+            return new LearningResult(evaluationResult, conceptProgress, LearningStepType.LEARNING_CARD, null);
+        }
+
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
         Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
                 ? getQuestionUseCase

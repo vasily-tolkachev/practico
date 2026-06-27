@@ -1,9 +1,10 @@
 package com.myproject.practico.adapter.out.openai;
 
-`import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.service.EvaluationRequest;
 import com.myproject.practico.application.service.EvaluationResult;
 import com.myproject.practico.config.OpenAiProperties;
+import com.myproject.practico.domain.LearningCard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -23,14 +24,20 @@ public class OpenAiClient implements EvaluationPort {
     private static final String PROMPT = """
             You are a technical learning coach.
 
-            Evaluate the candidate answer given in any language. Do not pay attention on typos.
+            Evaluate the candidate answer in any language. Ignore typos.
 
-            Return JSON only:
+            Return JSON only in this shape:
 
             {
               "score": number from 0 to 10,
-              "feedback": "short constructive feedback"
+              "evaluation": "short constructive evaluation",
+              "learningCard": {
+                "title": "short title",
+                "explanation": "clear explanation of what to learn next"
+              }
             }
+
+            If score is 8 or higher, set "learningCard" to null.
 
             Question:
             %s
@@ -39,7 +46,13 @@ public class OpenAiClient implements EvaluationPort {
             %s
             """;
     private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(\\d+)");
-    private static final Pattern FEEDBACK_PATTERN = Pattern.compile("\"feedback\"\\s*:\\s*\"([^\"]*)\"");
+    private static final Pattern EVALUATION_PATTERN = Pattern.compile("\"evaluation\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern LEARNING_CARD_TEXT_PATTERN =
+            Pattern.compile("\"learningCard\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern LEARNING_CARD_OBJECT_PATTERN =
+            Pattern.compile("\"learningCard\"\\s*:\\s*\\{([\\s\\S]*?)\\}");
+    private static final Pattern TITLE_PATTERN = Pattern.compile("\"title\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern EXPLANATION_PATTERN = Pattern.compile("\"explanation\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
 
     private final OpenAiProperties properties;
 
@@ -80,10 +93,7 @@ public class OpenAiClient implements EvaluationPort {
                 return fallback("AI evaluation is temporarily unavailable. Empty response from model.");
             }
 
-            String content = response.choices()[0].message().content();
-            int score = parseScore(content);
-            String feedback = parseFeedback(content);
-            return new EvaluationResult(score, feedback);
+            return parseResult(response.choices()[0].message().content());
         } catch (RestClientResponseException ex) {
             log.error(
                     "OpenAI evaluation HTTP error. model={}, status={}, body={}",
@@ -99,30 +109,79 @@ public class OpenAiClient implements EvaluationPort {
         }
     }
 
+    private EvaluationResult parseResult(String content) {
+        int score = parseScore(content);
+        String evaluation = parseEvaluation(content);
+        LearningCard learningCard = parseLearningCard(content, score, evaluation);
+
+        return new EvaluationResult(score, evaluation, learningCard);
+    }
+
     private int parseScore(String content) {
         Matcher matcher = SCORE_PATTERN.matcher(content);
         if (!matcher.find()) {
             return 0;
         }
+        return clampScore(Integer.parseInt(matcher.group(1)));
+    }
 
-        int rawScore = Integer.parseInt(matcher.group(1));
+    private String parseEvaluation(String content) {
+        Matcher matcher = EVALUATION_PATTERN.matcher(content);
+        if (!matcher.find()) {
+            return "No evaluation provided.";
+        }
+        String value = unescape(matcher.group(1)).trim();
+        return value.isEmpty() ? "No evaluation provided." : value;
+    }
+
+    private LearningCard parseLearningCard(String content, int score, String evaluation) {
+        Matcher textMatcher = LEARNING_CARD_TEXT_PATTERN.matcher(content);
+        if (textMatcher.find()) {
+            String explanation = unescape(textMatcher.group(1)).trim();
+            if (!explanation.isEmpty()) {
+                return new LearningCard("Key concept", explanation);
+            }
+        }
+
+        Matcher objectMatcher = LEARNING_CARD_OBJECT_PATTERN.matcher(content);
+        if (objectMatcher.find()) {
+            String objectContent = objectMatcher.group(1);
+            String title = parseField(objectContent, TITLE_PATTERN, "Key concept");
+            String explanation = parseField(objectContent, EXPLANATION_PATTERN, "");
+            if (!explanation.isBlank()) {
+                return new LearningCard(title, explanation);
+            }
+        }
+
+        if (score < 8) {
+            return new LearningCard("Key concept", evaluation);
+        }
+
+        return null;
+    }
+
+    private String parseField(String content, Pattern pattern, String fallback) {
+        Matcher matcher = pattern.matcher(content);
+        if (!matcher.find()) {
+            return fallback;
+        }
+        String value = unescape(matcher.group(1)).trim();
+        return value.isEmpty() ? fallback : value;
+    }
+
+    private String unescape(String text) {
+        return text.replace("\\n", "\n").replace("\\\"", "\"");
+    }
+
+    private int clampScore(int rawScore) {
         return Math.max(0, Math.min(10, rawScore));
     }
 
-    private String parseFeedback(String content) {
-        Matcher matcher = FEEDBACK_PATTERN.matcher(content);
-        if (!matcher.find()) {
-            return "No feedback provided.";
-        }
-
-        String feedback = matcher.group(1).replace("\\n", "\n").replace("\\\"", "\"");
-        return feedback.isBlank() ? "No feedback provided." : feedback;
-    }
-
-    private EvaluationResult fallback(String feedback) {
+    private EvaluationResult fallback(String evaluation) {
         return new EvaluationResult(
                 0,
-                feedback
+                evaluation,
+                new LearningCard("Key concept", "Review the concept and try again.")
         );
     }
 
