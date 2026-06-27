@@ -4,5 +4,6 @@ public enum LearningPhase {
     QUESTION,
     LEARNING_CARD,
     QUICK_CHECK,
-    RETRY
+    RETRY,
+    COMPLETED
 }

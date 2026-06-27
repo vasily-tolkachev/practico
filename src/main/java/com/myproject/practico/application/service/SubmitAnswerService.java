@@ -62,19 +62,18 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         Question nextQuestion = learningResult.nextQuestion();
         persistAnswer(user, currentQuestion, answer, evaluation, now);
 
-        Long nextQuestionId = switch (learningResult.nextStep()) {
+        Long nextQuestionId = switch (learningResult.nextPhase()) {
             case LEARNING_CARD -> currentQuestion.id();
             case QUESTION -> nextQuestion == null ? null : nextQuestion.id();
             case COMPLETED -> null;
+            case QUICK_CHECK, RETRY -> currentQuestion.id();
         };
 
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
-        if (learningResult.nextStep() != LearningStepType.COMPLETED) {
-            learningSessionService.setPhase(userId, toPhase(learningResult.nextStep()));
-        }
-        if (learningResult.nextStep() == LearningStepType.QUESTION && nextQuestion != null && nextQuestion.concept() != null) {
+        learningSessionService.setPhase(userId, learningResult.nextPhase());
+        if (learningResult.nextPhase() == LearningPhase.QUESTION && nextQuestion != null && nextQuestion.concept() != null) {
             learningSessionService.setCurrentQuestion(userId, nextQuestion.concept().id(), nextQuestion.id());
-        } else if (learningResult.nextStep() == LearningStepType.COMPLETED) {
+        } else if (learningResult.nextPhase() == LearningPhase.COMPLETED) {
             learningSessionService.setCurrentQuestion(userId, null, null);
         }
 
@@ -93,7 +92,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         response.append(", average ").append(String.format("%.1f", learningSessionService.averageLastScores(session))).append("/10\n\n");
         response.append("Evaluation:\n").append(evaluation.evaluation());
 
-        if (learningResult.nextStep() == LearningStepType.LEARNING_CARD) {
+        if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             if (evaluation.learningCard() != null) {
                 response.append("\n\nLearning card: ").append(evaluation.learningCard().title());
                 response.append("\n").append(evaluation.learningCard().explanation());
@@ -104,7 +103,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         Question nextQuestion = learningResult.nextQuestion();
-        if (nextQuestion != null && learningResult.nextStep() == LearningStepType.QUESTION) {
+        if (nextQuestion != null && learningResult.nextPhase() == LearningPhase.QUESTION) {
             if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
                 response.append("\n\nTopic: ").append(nextQuestion.concept().topic().name());
                 response.append("\nConcept: ").append(nextQuestion.concept().name());
@@ -129,11 +128,4 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         ));
     }
 
-    private LearningPhase toPhase(LearningStepType stepType) {
-        return switch (stepType) {
-            case QUESTION -> LearningPhase.QUESTION;
-            case LEARNING_CARD -> LearningPhase.LEARNING_CARD;
-            case COMPLETED -> throw new IllegalArgumentException("COMPLETED has no session phase mapping");
-        };
-    }
 }

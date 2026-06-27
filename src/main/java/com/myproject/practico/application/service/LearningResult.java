@@ -6,6 +6,6 @@ import com.myproject.practico.domain.UserConceptProgress;
 public record LearningResult(
         EvaluationResult evaluation,
         UserConceptProgress conceptProgress,
-        LearningStepType nextStep,
+        LearningPhase nextPhase,
         Question nextQuestion
 ) {}

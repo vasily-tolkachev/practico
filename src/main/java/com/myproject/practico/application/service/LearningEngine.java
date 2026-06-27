@@ -48,7 +48,7 @@ public class LearningEngine {
         );
 
         if (evaluationResult.score() < 8) {
-            return new LearningResult(evaluationResult, conceptProgress, LearningStepType.LEARNING_CARD, null);
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
@@ -60,7 +60,7 @@ public class LearningEngine {
                 .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
-        LearningStepType nextStep = nextQuestion == null ? LearningStepType.COMPLETED : LearningStepType.QUESTION;
-        return new LearningResult(evaluationResult, conceptProgress, nextStep, nextQuestion);
+        LearningPhase nextPhase = nextQuestion == null ? LearningPhase.COMPLETED : LearningPhase.QUESTION;
+        return new LearningResult(evaluationResult, conceptProgress, nextPhase, nextQuestion);
     }
 }
