@@ -1,6 +1,6 @@
 package com.myproject.practico.adapter.in.telegram;
 
-import com.myproject.practico.application.port.in.StartInterviewUseCase;
+import com.myproject.practico.application.port.in.StartLearningUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StartCommand implements TelegramCommand {
 
-    private final StartInterviewUseCase startInterviewUseCase;
+    private final StartLearningUseCase startLearningUseCase;
 
     @Override
     public boolean supports(String text) {
@@ -17,6 +17,6 @@ public class StartCommand implements TelegramCommand {
 
     @Override
     public String handle(String userId, String text) {
-        return startInterviewUseCase.start(userId);
+        return startLearningUseCase.start(userId);
     }
 }

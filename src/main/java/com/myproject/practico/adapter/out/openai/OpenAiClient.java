@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 public class OpenAiClient implements AiEvaluationPort {
 
     private static final String PROMPT = """
-            You are a technical interviewer.
+            You are a technical learning coach.
 
             Evaluate the candidate answer given in any language. Do not pay attention on typos.
 

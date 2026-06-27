@@ -1,5 +1,6 @@
 package com.myproject.practico.adapter.out.persistence.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -13,20 +14,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "question")
+@Table(name = "concept")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class QuestionJpaEntity {
+public class ConceptJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "concept_id", nullable = false)
-    private ConceptJpaEntity concept;
+    @JoinColumn(name = "topic_id", nullable = false)
+    private TopicJpaEntity topic;
 
-    private String text;
-    private String difficulty;
+    @Column(nullable = false)
+    private String name;
 }

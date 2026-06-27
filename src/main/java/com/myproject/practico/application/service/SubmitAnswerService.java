@@ -12,20 +12,20 @@ import java.time.Instant;
 
 public class SubmitAnswerService implements SubmitAnswerUseCase {
 
-    private final SessionService sessionService;
+    private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final AiEvaluationService aiEvaluationService;
     private final UserPersistencePort userPersistencePort;
     private final AnswerPersistencePort answerPersistencePort;
 
     public SubmitAnswerService(
-            SessionService sessionService,
+            LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
-        this.sessionService = sessionService;
+        this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.aiEvaluationService = aiEvaluationService;
         this.userPersistencePort = userPersistencePort;
@@ -38,10 +38,10 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             return "Please send a non-empty answer.";
         }
 
-        UserSessionStore.UserSession session = sessionService.getSession(userId).orElse(null);
+        LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
 
         if (session == null) {
-            return "No active interview. Send /start to begin.";
+            return "No active learning session. Send /start to begin.";
         }
 
         Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
@@ -53,35 +53,36 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
         persistAnswer(userId, currentQuestion, answer, aiResponse);
 
-        String nextDifficulty = sessionService.nextDifficulty(session, aiResponse.score());
+        String nextDifficulty = learningSessionService.nextDifficulty(session, aiResponse.score());
         Question nextQuestion = getQuestionUseCase
-                .getNext(nextDifficulty, sessionService.excludedQuestionIds(session))
+                .getNext(nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
-        sessionService.recordAnswerAndSetNextQuestion(
+        learningSessionService.recordAnswerAndSetNextQuestion(
                 userId,
                 aiResponse.score(),
                 nextQuestion == null ? null : nextQuestion.id()
         );
 
-        UserSessionStore.UserSession updatedSession = sessionService.getSession(userId).orElse(session);
+        LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
         return buildFinalResponse(aiResponse, nextQuestion, updatedSession);
     }
 
     private String buildFinalResponse(
             AiResponse aiResponse,
             Question nextQuestion,
-            UserSessionStore.UserSession session
+            LearningSessionStore.LearningSession session
     ) {
         StringBuilder response = new StringBuilder();
         response.append("✅ Score: ").append(aiResponse.score()).append("/10\n\n");
-        response.append("📈 Progress: answered ").append(session.answeredCount()).append(" questions");
-        response.append(", average ").append(String.format("%.1f", sessionService.averageLastScores(session))).append("/10\n\n");
+        response.append("📈 Learning progress: answered ").append(session.answeredCount()).append(" questions");
+        response.append(", average ").append(String.format("%.1f", learningSessionService.averageLastScores(session))).append("/10\n\n");
         response.append("💡 Feedback:\n").append(aiResponse.feedback());
 
         if (nextQuestion != null) {
-            if (nextQuestion.topic() != null && !nextQuestion.topic().isBlank()) {
-                response.append("\n\n📚 Topic: ").append(nextQuestion.topic());
+            if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
+                response.append("\n\n📚 Topic: ").append(nextQuestion.concept().topic().name());
+                response.append("\n🧩 Concept: ").append(nextQuestion.concept().name());
             }
             response.append("\n\n❓ Next question:\n").append(nextQuestion.text());
         } else {

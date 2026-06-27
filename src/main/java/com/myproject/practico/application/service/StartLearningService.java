@@ -1,32 +1,32 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
-import com.myproject.practico.application.port.in.StartInterviewUseCase;
+import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.domain.Question;
 
 import java.util.Set;
 
-public class StartInterviewService implements StartInterviewUseCase {
+public class StartLearningService implements StartLearningUseCase {
 
     private final GetQuestionUseCase getQuestionUseCase;
-    private final SessionService sessionService;
+    private final LearningSessionService learningSessionService;
 
-    public StartInterviewService(
+    public StartLearningService(
             GetQuestionUseCase getQuestionUseCase,
-            SessionService sessionService
+            LearningSessionService learningSessionService
     ) {
         this.getQuestionUseCase = getQuestionUseCase;
-        this.sessionService = sessionService;
+        this.learningSessionService = learningSessionService;
     }
 
     @Override
     public String start(String userId) {
         try {
             Question question = getQuestionUseCase
-                    .getNext(sessionService.firstDifficulty(), Set.of())
+                    .getNext(learningSessionService.firstDifficulty(), Set.of())
                     .orElseThrow(() -> new IllegalStateException("No questions found"));
 
-            sessionService.startSession(userId, question.id());
+            learningSessionService.startLearningSession(userId, question.id());
             return buildResponse(question);
         } catch (IllegalStateException ex) {
             return "No questions are available yet.";
@@ -35,11 +35,12 @@ public class StartInterviewService implements StartInterviewUseCase {
 
     private String buildResponse(Question question) {
         StringBuilder response = new StringBuilder();
-        response.append("🚀 Interview started.\n\n");
+        response.append("🚀 Learning started.\n\n");
         response.append("❓ Question:\n").append(question.text());
 
-        if (question.topic() != null && !question.topic().isBlank()) {
-            response.append("\n\n📚 Topic: ").append(question.topic());
+        if (question.concept() != null && question.concept().topic() != null) {
+            response.append("\n\n📚 Topic: ").append(question.concept().topic().name());
+            response.append("\n🧩 Concept: ").append(question.concept().name());
         }
 
         if (question.difficulty() != null && !question.difficulty().isBlank()) {

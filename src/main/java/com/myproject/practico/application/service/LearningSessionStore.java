@@ -6,39 +6,39 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class UserSessionStore {
+public class LearningSessionStore {
 
     private static final int MAX_LAST_SCORES = 3;
     private static final int MAX_ANSWERED_IDS = 100;
 
-    private final Map<String, UserSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, LearningSession> sessions = new ConcurrentHashMap<>();
 
-    public void startSession(String userId, Long questionId) {
-        sessions.put(userId, UserSession.started(userId, questionId));
+    public void startLearningSession(String userId, Long questionId) {
+        sessions.put(userId, LearningSession.started(userId, questionId));
     }
 
     public void recordAnswerAndSetNextQuestion(String userId, int score, Long nextQuestionId) {
         sessions.computeIfPresent(userId, (id, session) -> session.recordAnswer(score, nextQuestionId));
     }
 
-    public Optional<UserSession> get(String userId) {
+    public Optional<LearningSession> get(String userId) {
         return Optional.ofNullable(sessions.get(userId));
     }
 
-    public record UserSession(
+    public record LearningSession(
             String userId,
             Long currentQuestionId,
             Deque<Integer> lastScores,
             Deque<Long> answeredQuestionIds,
             int answeredCount
     ) {
-        public UserSession {
+        public LearningSession {
             lastScores = new ArrayDeque<>(lastScores);
             answeredQuestionIds = new ArrayDeque<>(answeredQuestionIds);
         }
 
-        public static UserSession started(String userId, Long questionId) {
-            return new UserSession(userId, questionId, new ArrayDeque<>(), new ArrayDeque<>(), 0);
+        public static LearningSession started(String userId, Long questionId) {
+            return new LearningSession(userId, questionId, new ArrayDeque<>(), new ArrayDeque<>(), 0);
         }
 
         @Override
@@ -58,7 +58,7 @@ public class UserSessionStore {
             return answeredQuestionIds.contains(questionId);
         }
 
-        public UserSession recordAnswer(int score, Long nextQuestionId) {
+        public LearningSession recordAnswer(int score, Long nextQuestionId) {
             Deque<Integer> updatedScores = new ArrayDeque<>(this.lastScores);
             updatedScores.addLast(score);
             while (updatedScores.size() > MAX_LAST_SCORES) {
@@ -73,7 +73,7 @@ public class UserSessionStore {
                 updatedAnsweredQuestionIds.removeFirst();
             }
 
-            return new UserSession(
+            return new LearningSession(
                     this.userId,
                     nextQuestionId,
                     updatedScores,

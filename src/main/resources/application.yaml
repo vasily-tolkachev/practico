@@ -4,12 +4,16 @@ openai:
   api-key: ${OPENAI_API_KEY:}
   model: ${OPENAI_MODEL:gpt-5-mini}
 spring:
+  sql:
+    init:
+      mode: always
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/practico}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   jpa:
+    defer-datasource-initialization: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: true

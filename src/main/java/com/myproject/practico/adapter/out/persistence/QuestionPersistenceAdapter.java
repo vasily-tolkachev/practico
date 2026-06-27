@@ -2,7 +2,9 @@ package com.myproject.practico.adapter.out.persistence;
 
 import com.myproject.practico.adapter.out.persistence.entity.QuestionJpaEntity;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.domain.Concept;
 import com.myproject.practico.domain.Question;
+import com.myproject.practico.domain.Topic;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -33,7 +35,14 @@ public class QuestionPersistenceAdapter implements QuestionPersistencePort {
         return new Question(
                 entity.getId(),
                 entity.getText(),
-                entity.getTopic(),
+                new Concept(
+                        entity.getConcept().getId(),
+                        new Topic(
+                                entity.getConcept().getTopic().getId(),
+                                entity.getConcept().getTopic().getName()
+                        ),
+                        entity.getConcept().getName()
+                ),
                 entity.getDifficulty()
         );
     }

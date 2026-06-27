@@ -2,7 +2,7 @@ package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
-import com.myproject.practico.application.port.in.StartInterviewUseCase;
+import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AiEvaluationPort;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
@@ -13,10 +13,10 @@ import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.AiEvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
-import com.myproject.practico.application.service.SessionService;
-import com.myproject.practico.application.service.StartInterviewService;
+import com.myproject.practico.application.service.LearningSessionService;
+import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
-import com.myproject.practico.application.service.UserSessionStore;
+import com.myproject.practico.application.service.LearningSessionStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,8 +29,8 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
-    public UserSessionStore userSessionStore() {
-        return new UserSessionStore();
+    public LearningSessionStore learningSessionStore() {
+        return new LearningSessionStore();
     }
 
     @Bean
@@ -39,28 +39,28 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
-    public SessionService sessionService(UserSessionStore userSessionStore) {
-        return new SessionService(userSessionStore);
+    public LearningSessionService learningSessionService(LearningSessionStore learningSessionStore) {
+        return new LearningSessionService(learningSessionStore);
     }
 
     @Bean
-    public StartInterviewUseCase startInterviewUseCase(
+    public StartLearningUseCase startLearningUseCase(
             GetQuestionUseCase getQuestionUseCase,
-            SessionService sessionService
+            LearningSessionService learningSessionService
     ) {
-        return new StartInterviewService(getQuestionUseCase, sessionService);
+        return new StartLearningService(getQuestionUseCase, learningSessionService);
     }
 
     @Bean
     public SubmitAnswerUseCase submitAnswerUseCase(
-            SessionService sessionService,
+            LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             AiEvaluationService aiEvaluationService,
             UserPersistencePort userPersistencePort,
             AnswerPersistencePort answerPersistencePort
     ) {
         return new SubmitAnswerService(
-                sessionService,
+                learningSessionService,
                 getQuestionUseCase,
                 aiEvaluationService,
                 userPersistencePort,
