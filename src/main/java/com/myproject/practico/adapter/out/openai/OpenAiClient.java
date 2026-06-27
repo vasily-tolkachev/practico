@@ -5,6 +5,7 @@ import com.myproject.practico.application.service.EvaluationRequest;
 import com.myproject.practico.application.service.EvaluationResult;
 import com.myproject.practico.config.OpenAiProperties;
 import com.myproject.practico.domain.LearningCard;
+import com.myproject.practico.domain.QuickCheck;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -34,10 +35,14 @@ public class OpenAiClient implements EvaluationPort {
               "learningCard": {
                 "title": "short title",
                 "explanation": "clear explanation of what to learn next"
+              },
+              "quickCheck": {
+                "question": "very short check question",
+                "expectedAnswer": "short expected answer"
               }
             }
 
-            If score is 8 or higher, set "learningCard" to null.
+            If score is 8 or higher, set "learningCard" and "quickCheck" to null.
 
             Question:
             %s
@@ -53,6 +58,12 @@ public class OpenAiClient implements EvaluationPort {
             Pattern.compile("\"learningCard\"\\s*:\\s*\\{([\\s\\S]*?)\\}");
     private static final Pattern TITLE_PATTERN = Pattern.compile("\"title\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern EXPLANATION_PATTERN = Pattern.compile("\"explanation\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern QUICK_CHECK_OBJECT_PATTERN =
+            Pattern.compile("\"quickCheck\"\\s*:\\s*\\{([\\s\\S]*?)\\}");
+    private static final Pattern QUICK_CHECK_QUESTION_PATTERN =
+            Pattern.compile("\"question\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern QUICK_CHECK_EXPECTED_ANSWER_PATTERN =
+            Pattern.compile("\"expectedAnswer\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
 
     private final OpenAiProperties properties;
 
@@ -113,8 +124,9 @@ public class OpenAiClient implements EvaluationPort {
         int score = parseScore(content);
         String evaluation = parseEvaluation(content);
         LearningCard learningCard = parseLearningCard(content, score, evaluation);
+        QuickCheck quickCheck = parseQuickCheck(content);
 
-        return new EvaluationResult(score, evaluation, learningCard);
+        return new EvaluationResult(score, evaluation, learningCard, quickCheck);
     }
 
     private int parseScore(String content) {
@@ -169,6 +181,23 @@ public class OpenAiClient implements EvaluationPort {
         return value.isEmpty() ? fallback : value;
     }
 
+    private QuickCheck parseQuickCheck(String content) {
+        Matcher objectMatcher = QUICK_CHECK_OBJECT_PATTERN.matcher(content);
+        if (!objectMatcher.find()) {
+            return null;
+        }
+
+        String objectContent = objectMatcher.group(1);
+        String question = parseField(objectContent, QUICK_CHECK_QUESTION_PATTERN, "");
+        String expectedAnswer = parseField(objectContent, QUICK_CHECK_EXPECTED_ANSWER_PATTERN, "");
+
+        if (question.isBlank()) {
+            return null;
+        }
+
+        return new QuickCheck(question, expectedAnswer);
+    }
+
     private String unescape(String text) {
         return text.replace("\\n", "\n").replace("\\\"", "\"");
     }
@@ -181,7 +210,8 @@ public class OpenAiClient implements EvaluationPort {
         return new EvaluationResult(
                 0,
                 evaluation,
-                new LearningCard("Key concept", "Review the concept and try again.")
+                new LearningCard("Key concept", "Review the concept and try again."),
+                null
         );
     }
 
