@@ -39,19 +39,18 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
-
         if (session == null) {
             return "No active learning session. Send /start to begin.";
         }
 
         Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
-
         if (currentQuestion == null) {
             return "Current question was not found. Send /start to restart.";
         }
 
         Instant now = Instant.now();
         User user = userPersistencePort.upsertByTelegramId(userId, now);
+
         LearningResult learningResult;
         try {
             learningResult = learningEngine.handleAnswer(user.id(), currentQuestion, answer, session, now);
@@ -59,53 +58,52 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             return "Current question concept was not found. Send /start to restart.";
         }
 
-        AiResponse aiResponse = learningResult.aiResponse();
+        EvaluationResult evaluation = learningResult.evaluation();
         Question nextQuestion = learningResult.nextQuestion();
-        persistAnswer(user, currentQuestion, answer, aiResponse, now);
-
+        persistAnswer(user, currentQuestion, answer, evaluation, now);
 
         learningSessionService.recordAnswerAndSetNextQuestion(
                 userId,
-                aiResponse.score(),
+                evaluation.score(),
                 nextQuestion == null ? null : nextQuestion.id()
         );
 
         LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
-        return buildFinalResponse(aiResponse, nextQuestion, updatedSession);
+        return buildFinalResponse(evaluation, nextQuestion, updatedSession);
     }
 
     private String buildFinalResponse(
-            AiResponse aiResponse,
+            EvaluationResult evaluation,
             Question nextQuestion,
             LearningSessionStore.LearningSession session
     ) {
         StringBuilder response = new StringBuilder();
-        response.append("✅ Score: ").append(aiResponse.score()).append("/10\n\n");
-        response.append("📈 Learning progress: answered ").append(session.answeredCount()).append(" questions");
+        response.append("Score: ").append(evaluation.score()).append("/10\n\n");
+        response.append("Learning progress: answered ").append(session.answeredCount()).append(" questions");
         response.append(", average ").append(String.format("%.1f", learningSessionService.averageLastScores(session))).append("/10\n\n");
-        response.append("💡 Feedback:\n").append(aiResponse.feedback());
+        response.append("Feedback:\n").append(evaluation.feedback());
 
         if (nextQuestion != null) {
             if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
-                response.append("\n\n📚 Topic: ").append(nextQuestion.concept().topic().name());
-                response.append("\n🧩 Concept: ").append(nextQuestion.concept().name());
+                response.append("\n\nTopic: ").append(nextQuestion.concept().topic().name());
+                response.append("\nConcept: ").append(nextQuestion.concept().name());
             }
-            response.append("\n\n❓ Next question:\n").append(nextQuestion.text());
+            response.append("\n\nNext question:\n").append(nextQuestion.text());
         } else {
-            response.append("\n\n🏁 No more new questions in this session. Send /start to restart.");
+            response.append("\n\nLearning step: COMPLETED. Send /start to restart.");
         }
 
         return response.toString();
     }
 
-    private void persistAnswer(User user, Question currentQuestion, String answerText, AiResponse aiResponse, Instant now) {
+    private void persistAnswer(User user, Question currentQuestion, String answerText, EvaluationResult evaluation, Instant now) {
         answerPersistencePort.save(new Answer(
                 null,
                 user.id(),
                 currentQuestion.id(),
                 answerText,
-                aiResponse.score(),
-                aiResponse.feedback(),
+                evaluation.score(),
+                evaluation.feedback(),
                 now
         ));
     }

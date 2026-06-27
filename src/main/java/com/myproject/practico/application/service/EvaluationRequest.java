@@ -1,6 +1,6 @@
 package com.myproject.practico.application.service;
 
-public record AiRequest(
+public record EvaluationRequest(
         String question,
         String answer
 ) {}

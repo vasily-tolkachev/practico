@@ -4,14 +4,14 @@ import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
-import com.myproject.practico.application.port.out.AiEvaluationPort;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
+import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.MessengerPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
-import com.myproject.practico.application.service.AiEvaluationService;
+import com.myproject.practico.application.service.EvaluationService;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
 import com.myproject.practico.application.service.LearningEngine;
@@ -37,8 +37,8 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
-    public AiEvaluationService aiEvaluationService(AiEvaluationPort aiEvaluationPort) {
-        return new AiEvaluationService(aiEvaluationPort);
+    public EvaluationService evaluationService(EvaluationPort evaluationPort) {
+        return new EvaluationService(evaluationPort);
     }
 
     @Bean
@@ -55,13 +55,13 @@ public class ApplicationWiringConfig {
 
     @Bean
     public LearningEngine learningEngine(
-            AiEvaluationService aiEvaluationService,
+            EvaluationService evaluationService,
             UserConceptProgressService userConceptProgressService,
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService
     ) {
         return new LearningEngine(
-                aiEvaluationService,
+                evaluationService,
                 userConceptProgressService,
                 getQuestionUseCase,
                 learningSessionService

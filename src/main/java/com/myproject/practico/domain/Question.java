@@ -4,5 +4,5 @@ public record Question(
         Long id,
         String text,
         Concept concept,
-        String difficulty
+        Difficulty difficulty
 ) {}

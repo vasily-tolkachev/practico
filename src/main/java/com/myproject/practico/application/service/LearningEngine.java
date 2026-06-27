@@ -9,18 +9,18 @@ import java.time.Instant;
 
 public class LearningEngine {
 
-    private final AiEvaluationService aiEvaluationService;
+    private final EvaluationService evaluationService;
     private final UserConceptProgressService userConceptProgressService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final LearningSessionService learningSessionService;
 
     public LearningEngine(
-            AiEvaluationService aiEvaluationService,
+            EvaluationService evaluationService,
             UserConceptProgressService userConceptProgressService,
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService
     ) {
-        this.aiEvaluationService = aiEvaluationService;
+        this.evaluationService = evaluationService;
         this.userConceptProgressService = userConceptProgressService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.learningSessionService = learningSessionService;
@@ -33,7 +33,7 @@ public class LearningEngine {
             LearningSessionStore.LearningSession session,
             Instant now
     ) {
-        AiResponse aiResponse = aiEvaluationService.evaluate(currentQuestion.text(), answer);
+        EvaluationResult evaluationResult = evaluationService.evaluate(currentQuestion.text(), answer);
 
         Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
         if (conceptId == null) {
@@ -43,11 +43,11 @@ public class LearningEngine {
         UserConceptProgress conceptProgress = userConceptProgressService.update(
                 userId,
                 conceptId,
-                aiResponse.score(),
+                evaluationResult.score(),
                 now
         );
 
-        String nextDifficulty = learningSessionService.nextDifficulty(session, aiResponse.score());
+        var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
         Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
                 ? getQuestionUseCase
                 .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
@@ -56,6 +56,7 @@ public class LearningEngine {
                 .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
-        return new LearningResult(aiResponse, conceptProgress, nextQuestion);
+        LearningStepType nextStep = nextQuestion == null ? LearningStepType.COMPLETED : LearningStepType.QUESTION;
+        return new LearningResult(evaluationResult, conceptProgress, nextStep, nextQuestion);
     }
 }

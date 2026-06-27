@@ -43,7 +43,7 @@ public class StartLearningService implements StartLearningUseCase {
             response.append("\n🧩 Concept: ").append(question.concept().name());
         }
 
-        if (question.difficulty() != null && !question.difficulty().isBlank()) {
+        if (question.difficulty() != null) {
             response.append("\n🎯 Difficulty: ").append(question.difficulty());
         }
 

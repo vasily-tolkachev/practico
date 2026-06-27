@@ -4,7 +4,8 @@ import com.myproject.practico.domain.Question;
 import com.myproject.practico.domain.UserConceptProgress;
 
 public record LearningResult(
-        AiResponse aiResponse,
+        EvaluationResult evaluation,
         UserConceptProgress conceptProgress,
+        LearningStepType nextStep,
         Question nextQuestion
 ) {}

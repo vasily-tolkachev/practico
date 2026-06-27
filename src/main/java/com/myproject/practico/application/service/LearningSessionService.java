@@ -1,5 +1,7 @@
 package com.myproject.practico.application.service;
 
+import com.myproject.practico.domain.Difficulty;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -8,7 +10,11 @@ import java.util.Set;
 
 public class LearningSessionService {
 
-    private static final List<String> DIFFICULTY_LEVELS = List.of("easy", "medium", "hard");
+    private static final List<Difficulty> DIFFICULTY_LEVELS = List.of(
+            Difficulty.EASY,
+            Difficulty.MEDIUM,
+            Difficulty.HARD
+    );
 
     private final LearningSessionStore learningSessionStore;
 
@@ -28,11 +34,11 @@ public class LearningSessionService {
         learningSessionStore.recordAnswerAndSetNextQuestion(userId, score, nextQuestionId);
     }
 
-    public String firstDifficulty() {
-        return "easy";
+    public Difficulty firstDifficulty() {
+        return Difficulty.EASY;
     }
 
-    public String nextDifficulty(LearningSessionStore.LearningSession session, int latestScore) {
+    public Difficulty nextDifficulty(LearningSessionStore.LearningSession session, int latestScore) {
         int answeredAfterCurrent = session.answeredCount() + 1;
         int baseLevel = answeredAfterCurrent >= 3 ? 2 : answeredAfterCurrent >= 2 ? 1 : 0;
 

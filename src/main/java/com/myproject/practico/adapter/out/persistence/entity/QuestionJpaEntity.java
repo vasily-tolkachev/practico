@@ -1,6 +1,9 @@
 package com.myproject.practico.adapter.out.persistence.entity;
 
+import com.myproject.practico.domain.Difficulty;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,5 +31,7 @@ public class QuestionJpaEntity {
     private ConceptJpaEntity concept;
 
     private String text;
-    private String difficulty;
+
+    @Enumerated(EnumType.STRING)
+    private Difficulty difficulty;
 }

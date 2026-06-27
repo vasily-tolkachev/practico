@@ -1,8 +1,8 @@
 package com.myproject.practico.adapter.out.openai;
 
-import com.myproject.practico.application.port.out.AiEvaluationPort;
-import com.myproject.practico.application.service.AiRequest;
-import com.myproject.practico.application.service.AiResponse;
+`import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.service.EvaluationRequest;
+import com.myproject.practico.application.service.EvaluationResult;
 import com.myproject.practico.config.OpenAiProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class OpenAiClient implements AiEvaluationPort {
+public class OpenAiClient implements EvaluationPort {
 
     private static final String PROMPT = """
             You are a technical learning coach.
@@ -44,7 +44,7 @@ public class OpenAiClient implements AiEvaluationPort {
     private final OpenAiProperties properties;
 
     @Override
-    public AiResponse evaluate(AiRequest request) {
+    public EvaluationResult evaluate(EvaluationRequest request) {
         String model = properties.model() == null || properties.model().isBlank()
                 ? "gpt-4.1-mini"
                 : properties.model();
@@ -83,7 +83,7 @@ public class OpenAiClient implements AiEvaluationPort {
             String content = response.choices()[0].message().content();
             int score = parseScore(content);
             String feedback = parseFeedback(content);
-            return new AiResponse(score, feedback);
+            return new EvaluationResult(score, feedback);
         } catch (RestClientResponseException ex) {
             log.error(
                     "OpenAI evaluation HTTP error. model={}, status={}, body={}",
@@ -119,8 +119,8 @@ public class OpenAiClient implements AiEvaluationPort {
         return feedback.isBlank() ? "No feedback provided." : feedback;
     }
 
-    private AiResponse fallback(String feedback) {
-        return new AiResponse(
+    private EvaluationResult fallback(String feedback) {
+        return new EvaluationResult(
                 0,
                 feedback
         );

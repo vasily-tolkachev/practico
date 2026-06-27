@@ -1,6 +1,6 @@
 package com.myproject.practico.application.service;
 
-public record AiResponse(
+public record EvaluationResult(
         int score,
         String feedback
 ) {}

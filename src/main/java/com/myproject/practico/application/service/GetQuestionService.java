@@ -2,6 +2,7 @@ package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.domain.Difficulty;
 import com.myproject.practico.domain.Question;
 
 import java.util.ArrayList;
@@ -21,13 +22,13 @@ public class GetQuestionService implements GetQuestionUseCase {
     }
 
     @Override
-    public Optional<Question> getNext(String preferredDifficulty, Set<Long> excludedQuestionIds) {
+    public Optional<Question> getNext(Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
         List<Question> availableQuestions = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds);
         return pickByDifficulty(availableQuestions, preferredDifficulty);
     }
 
     @Override
-    public Optional<Question> getNextInConcept(Long conceptId, String preferredDifficulty, Set<Long> excludedQuestionIds) {
+    public Optional<Question> getNextInConcept(Long conceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
         if (conceptId == null) {
             return Optional.empty();
         }
@@ -40,7 +41,7 @@ public class GetQuestionService implements GetQuestionUseCase {
     }
 
     @Override
-    public Optional<Question> getNextFromNextConcept(Long currentConceptId, String preferredDifficulty, Set<Long> excludedQuestionIds) {
+    public Optional<Question> getNextFromNextConcept(Long currentConceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
         List<Question> availableQuestions = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds);
         if (availableQuestions.isEmpty()) {
             return Optional.empty();
@@ -89,7 +90,7 @@ public class GetQuestionService implements GetQuestionUseCase {
                 .toList();
     }
 
-    private Optional<Question> pickByDifficulty(List<Question> questions, String preferredDifficulty) {
+    private Optional<Question> pickByDifficulty(List<Question> questions, Difficulty preferredDifficulty) {
         if (questions.isEmpty()) {
             return Optional.empty();
         }
@@ -105,32 +106,15 @@ public class GetQuestionService implements GetQuestionUseCase {
         return Optional.of(randomFrom(questions));
     }
 
-    private boolean matchesDifficulty(String questionDifficulty, String preferredDifficulty) {
-        if (preferredDifficulty == null || preferredDifficulty.isBlank()) {
+    private boolean matchesDifficulty(Difficulty questionDifficulty, Difficulty preferredDifficulty) {
+        if (preferredDifficulty == null) {
             return true;
         }
 
-        if (questionDifficulty == null || questionDifficulty.isBlank()) {
+        if (questionDifficulty == null) {
             return false;
         }
 
-        String normalizedPreferred = preferredDifficulty.toLowerCase();
-        String normalizedQuestionDifficulty = questionDifficulty.toLowerCase();
-
-        if ("easy".equals(normalizedPreferred)) {
-            return normalizedQuestionDifficulty.contains("easy")
-                    || normalizedQuestionDifficulty.contains("basic")
-                    || normalizedQuestionDifficulty.contains("junior");
-        }
-
-        if ("medium".equals(normalizedPreferred)) {
-            return normalizedQuestionDifficulty.contains("medium")
-                    || normalizedQuestionDifficulty.contains("middle")
-                    || normalizedQuestionDifficulty.contains("mid");
-        }
-
-        return normalizedQuestionDifficulty.contains("hard")
-                || normalizedQuestionDifficulty.contains("advanced")
-                || normalizedQuestionDifficulty.contains("senior");
+        return questionDifficulty == preferredDifficulty;
     }
 }
