@@ -54,8 +54,16 @@ public class DefaultLearningEngine implements LearningEngine {
             return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
-        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
+        Long currentMicroConceptId = currentQuestion.microConcept() == null ? null : currentQuestion.microConcept().id();
+        Question nextQuestionInConcept = getQuestionUseCase
+                .getNextFromNextMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
+                .orElse(null);
+        if (nextQuestionInConcept != null) {
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.QUESTION, nextQuestionInConcept);
+        }
+
+        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         Question nextQuestion = getQuestionUseCase
                 .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
@@ -91,8 +99,16 @@ public class DefaultLearningEngine implements LearningEngine {
             return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
-        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
+        Long currentMicroConceptId = currentQuestion.microConcept() == null ? null : currentQuestion.microConcept().id();
+        Question nextQuestionInConcept = getQuestionUseCase
+                .getNextFromNextMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
+                .orElse(null);
+        if (nextQuestionInConcept != null) {
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.QUESTION, nextQuestionInConcept);
+        }
+
+        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         Question nextQuestion = getQuestionUseCase
                 .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);

@@ -66,9 +66,6 @@ public class UserConceptProgressService {
         if (score < 5) {
             return ProgressStatus.LEARNING;
         }
-        if (score < 8) {
-            return ProgressStatus.IN_PROGRESS;
-        }
-        return ProgressStatus.MASTERED;
+        return ProgressStatus.IN_PROGRESS;
     }
 }

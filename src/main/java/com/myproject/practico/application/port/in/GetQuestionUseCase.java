@@ -11,6 +11,13 @@ public interface GetQuestionUseCase {
 
     Optional<Question> getNextInConcept(Long conceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
 
+    Optional<Question> getNextFromNextMicroConcept(
+            Long conceptId,
+            Long currentMicroConceptId,
+            Difficulty preferredDifficulty,
+            Set<Long> excludedQuestionIds
+    );
+
     Optional<Question> getNextFromNextConcept(Long currentConceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
 
     Optional<Question> getById(Long id);
