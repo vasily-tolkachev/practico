@@ -24,6 +24,7 @@ import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.LearningSessionStore;
 import com.myproject.practico.application.service.QuickCheckService;
+import com.myproject.practico.application.service.PracticeService;
 import com.myproject.practico.application.service.UserConceptProgressService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -66,6 +67,11 @@ public class ApplicationWiringConfig {
     @Bean
     public RetryMasteryPolicy retryMasteryPolicy() {
         return new DefaultRetryMasteryPolicy();
+    }
+
+    @Bean
+    public PracticeService practiceService() {
+        return new PracticeService();
     }
 
     @Bean
@@ -117,6 +123,7 @@ public class ApplicationWiringConfig {
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService,
             QuickCheckService quickCheckService,
+            PracticeService practiceService,
             MessengerPort messengerPort
     ) {
         return new HandleIncomingMessageService(
@@ -125,6 +132,7 @@ public class ApplicationWiringConfig {
                 getQuestionUseCase,
                 learningSessionService,
                 quickCheckService,
+                practiceService,
                 messengerPort
         );
     }

@@ -34,6 +34,10 @@ public class LearningSessionStore {
         sessions.computeIfPresent(userId, (id, session) -> session.withCurrentCycle(currentCycle));
     }
 
+    public void setPracticeIndex(String userId, int practiceIndex) {
+        sessions.computeIfPresent(userId, (id, session) -> session.withPracticeIndex(practiceIndex));
+    }
+
     public Optional<LearningSession> get(String userId) {
         return Optional.ofNullable(sessions.get(userId));
     }
@@ -48,6 +52,7 @@ public class LearningSessionStore {
             Long currentQuestionId,
             LearningPhase phase,
             LearningCycle currentCycle,
+            int currentPracticeIndex,
             Deque<Integer> lastScores,
             Deque<Long> answeredQuestionIds,
             Deque<Long> masteredMicroConceptIds,
@@ -66,6 +71,7 @@ public class LearningSessionStore {
                     questionId,
                     LearningPhase.QUESTION,
                     null,
+                    0,
                     new ArrayDeque<>(),
                     new ArrayDeque<>(),
                     new ArrayDeque<>(),
@@ -116,6 +122,7 @@ public class LearningSessionStore {
                     nextQuestionId,
                     this.phase,
                     this.currentCycle,
+                    this.currentPracticeIndex,
                     updatedScores,
                     updatedAnsweredQuestionIds,
                     this.masteredMicroConceptIds,
@@ -130,6 +137,7 @@ public class LearningSessionStore {
                     this.currentQuestionId,
                     phase,
                     this.currentCycle,
+                    this.currentPracticeIndex,
                     this.lastScores,
                     this.answeredQuestionIds,
                     this.masteredMicroConceptIds,
@@ -144,6 +152,7 @@ public class LearningSessionStore {
                     questionId,
                     this.phase,
                     this.currentCycle,
+                    this.currentPracticeIndex,
                     this.lastScores,
                     this.answeredQuestionIds,
                     this.masteredMicroConceptIds,
@@ -158,6 +167,22 @@ public class LearningSessionStore {
                     this.currentQuestionId,
                     this.phase,
                     currentCycle,
+                    this.currentPracticeIndex,
+                    this.lastScores,
+                    this.answeredQuestionIds,
+                    this.masteredMicroConceptIds,
+                    this.answeredCount
+            );
+        }
+
+        public LearningSession withPracticeIndex(int practiceIndex) {
+            return new LearningSession(
+                    this.userId,
+                    this.currentConceptId,
+                    this.currentQuestionId,
+                    this.phase,
+                    this.currentCycle,
+                    Math.max(0, practiceIndex),
                     this.lastScores,
                     this.answeredQuestionIds,
                     this.masteredMicroConceptIds,
@@ -182,6 +207,7 @@ public class LearningSessionStore {
                     this.currentQuestionId,
                     this.phase,
                     this.currentCycle,
+                    this.currentPracticeIndex,
                     this.lastScores,
                     this.answeredQuestionIds,
                     updatedMasteredMicroConceptIds,

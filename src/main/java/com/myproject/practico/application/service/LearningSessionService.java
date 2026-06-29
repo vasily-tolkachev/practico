@@ -50,6 +50,10 @@ public class LearningSessionService {
         learningSessionStore.markMicroConceptMastered(userId, microConceptId);
     }
 
+    public void setPracticeIndex(String userId, int practiceIndex) {
+        learningSessionStore.setPracticeIndex(userId, practiceIndex);
+    }
+
     public Difficulty firstDifficulty() {
         return Difficulty.EASY;
     }

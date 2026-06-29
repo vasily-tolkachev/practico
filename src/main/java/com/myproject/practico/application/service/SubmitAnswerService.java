@@ -68,7 +68,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             case LEARNING_CARD -> currentQuestion.id();
             case QUESTION -> nextQuestion == null ? null : nextQuestion.id();
             case COMPLETED -> null;
-            case QUICK_CHECK, RETRY -> currentQuestion.id();
+            case PRACTICE, QUICK_CHECK, RETRY -> currentQuestion.id();
         };
 
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
@@ -78,6 +78,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             learningSessionService.setCurrentCycle(userId, new LearningCycle(
                     evaluation.learningCard(),
                     evaluation.quickCheck(),
+                    evaluation.practiceItems(),
                     evaluation.retryQuestion()
             ));
         } else {
@@ -112,7 +113,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             } else {
                 response.append("\n\nLearning card:\nReview the concept and try again.");
             }
-            response.append("\n\nWhen you are ready, send any message (for example, \"ready\") to move to a quick check.");
+            response.append("\n\nWhen you are ready, send any message (for example, \"ready\") to start practice.");
             return response.toString();
         }
 

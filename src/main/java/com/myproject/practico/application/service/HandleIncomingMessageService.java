@@ -8,6 +8,8 @@ import com.myproject.practico.application.port.out.MessengerPort;
 import com.myproject.practico.domain.Difficulty;
 import com.myproject.practico.domain.Question;
 
+import java.util.List;
+
 public class HandleIncomingMessageService implements HandleIncomingMessageUseCase {
 
     private final CommandInterpreterPort commandInterpreterPort;
@@ -15,6 +17,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
     private final GetQuestionUseCase getQuestionUseCase;
     private final LearningSessionService learningSessionService;
     private final QuickCheckService quickCheckService;
+    private final PracticeService practiceService;
     private final MessengerPort messengerPort;
 
     public HandleIncomingMessageService(
@@ -23,6 +26,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService,
             QuickCheckService quickCheckService,
+            PracticeService practiceService,
             MessengerPort messengerPort
     ) {
         this.commandInterpreterPort = commandInterpreterPort;
@@ -30,6 +34,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
         this.getQuestionUseCase = getQuestionUseCase;
         this.learningSessionService = learningSessionService;
         this.quickCheckService = quickCheckService;
+        this.practiceService = practiceService;
         this.messengerPort = messengerPort;
     }
 
@@ -60,33 +65,53 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
         }
 
         if (session.phase() == LearningPhase.LEARNING_CARD) {
-            learningSessionService.setPhase(userId, LearningPhase.QUICK_CHECK);
-            if (session.currentCycle() == null
-                    || session.currentCycle().quickCheck() == null
-                    || session.currentCycle().quickCheck().question() == null
-                    || session.currentCycle().quickCheck().question().isBlank()) {
-                return "Quick check is unavailable. Please continue with the next answer.";
+            List<PracticeItem> practiceItems = session.currentCycle() == null ? null : session.currentCycle().practiceItems();
+            if (practiceItems == null || practiceItems.isEmpty()) {
+                learningSessionService.setPhase(userId, LearningPhase.RETRY);
+                String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
+                if (retryQuestionText == null || retryQuestionText.isBlank()) {
+                    return "Practice is unavailable. Please continue with the next answer.";
+                }
+                return "Retry question:\n" + retryQuestionText;
             }
-            return "Quick check:\n" + session.currentCycle().quickCheck().question();
+            learningSessionService.setPracticeIndex(userId, 0);
+            learningSessionService.setPhase(userId, LearningPhase.PRACTICE);
+            return formatPracticeQuestion(practiceItems.get(0), 1, practiceItems.size());
         }
 
-        if (session.phase() == LearningPhase.QUICK_CHECK) {
-            if (session.currentCycle() == null || session.currentCycle().quickCheck() == null) {
-                return "Quick check is unavailable. Please continue with the next answer.";
+        if (session.phase() == LearningPhase.PRACTICE) {
+            List<PracticeItem> practiceItems = session.currentCycle() == null ? null : session.currentCycle().practiceItems();
+            if (practiceItems == null || practiceItems.isEmpty()) {
+                return "Practice is unavailable. Please continue with the next answer.";
             }
 
-            QuickCheckResult quickCheckResult = quickCheckService.check(text, session.currentCycle().quickCheck());
-            if (!quickCheckResult.correct()) {
-                String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
+            int index = Math.max(0, session.currentPracticeIndex());
+            if (index >= practiceItems.size()) {
+                index = practiceItems.size() - 1;
+            }
+            PracticeItem currentItem = practiceItems.get(index);
+            PracticeCheckResult checkResult = practiceService.check(text, currentItem);
+            if (!checkResult.correct()) {
+                String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
                         ? "Not quite yet."
-                        : quickCheckResult.feedback();
-                return feedback + "\n\nTry again:\n" + session.currentCycle().quickCheck().question();
+                        : checkResult.feedback();
+                return feedback + "\n\n" + formatPracticeQuestion(currentItem, index + 1, practiceItems.size());
+            }
+
+            int nextIndex = index + 1;
+            if (nextIndex < practiceItems.size()) {
+                learningSessionService.setPracticeIndex(userId, nextIndex);
+                String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
+                        ? "Correct."
+                        : checkResult.feedback();
+                return feedback + "\n\n" + formatPracticeQuestion(practiceItems.get(nextIndex), nextIndex + 1, practiceItems.size());
             }
 
             learningSessionService.setPhase(userId, LearningPhase.RETRY);
+
             Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
             if (currentQuestion == null || currentQuestion.text() == null || currentQuestion.text().isBlank()) {
-                return "Correct quick check. Now retry the previous question.";
+                return "Practice complete. Now retry the previous question.";
             }
 
             String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
@@ -112,12 +137,44 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
                 retryQuestionText = retryQuestion.text();
             }
 
-            String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
-                    ? "Correct quick check."
-                    : quickCheckResult.feedback();
+            String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
+                    ? "Practice complete."
+                    : checkResult.feedback();
             return feedback + "\n\nRetry question:\n" + retryQuestionText;
         }
 
+        if (session.phase() == LearningPhase.QUICK_CHECK) {
+            if (session.currentCycle() == null || session.currentCycle().quickCheck() == null) {
+                return "Quick check is unavailable. Please continue with the next answer.";
+            }
+
+            QuickCheckResult quickCheckResult = quickCheckService.check(text, session.currentCycle().quickCheck());
+            if (!quickCheckResult.correct()) {
+                String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
+                        ? "Not quite yet."
+                        : quickCheckResult.feedback();
+                return feedback + "\n\nTry again:\n" + session.currentCycle().quickCheck().question();
+            }
+            learningSessionService.setPhase(userId, LearningPhase.RETRY);
+            return "Correct. Retry question:\n" + (session.currentCycle().retryQuestion() == null ? "" : session.currentCycle().retryQuestion());
+        }
+
         return submitAnswerUseCase.submit(userId, text);
+    }
+
+    private String formatPracticeQuestion(PracticeItem item, int index, int total) {
+        StringBuilder response = new StringBuilder();
+        response.append("Practice ").append(index).append("/").append(total).append(":\n");
+        response.append(item.question());
+        if (item.type() == PracticeType.TRUE_FALSE) {
+            response.append("\n(True/False)");
+        } else if (item.type() == PracticeType.MULTIPLE_CHOICE && item.options() != null && !item.options().isEmpty()) {
+            for (int i = 0; i < item.options().size(); i++) {
+                char label = (char) ('A' + i);
+                response.append("\n").append(label).append(") ").append(item.options().get(i));
+            }
+            response.append("\n(Reply with letter(s), e.g. A or A,C)");
+        }
+        return response.toString();
     }
 }

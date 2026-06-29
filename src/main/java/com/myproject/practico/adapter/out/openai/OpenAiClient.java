@@ -4,9 +4,13 @@ import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.service.EvaluationRequest;
 import com.myproject.practico.application.service.EvaluationResult;
+import com.myproject.practico.application.service.PracticeItem;
+import com.myproject.practico.application.service.PracticeType;
 import com.myproject.practico.application.service.QuickCheckRequest;
 import com.myproject.practico.application.service.QuickCheckResult;
 import com.myproject.practico.config.OpenAiProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.domain.LearningCard;
 import com.myproject.practico.domain.QuickCheck;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +23,14 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class OpenAiClient implements EvaluationPort, QuickCheckPort {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String PROMPT = """
             You are a technical learning coach for beginners.
@@ -63,13 +70,31 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 "question": "ONE tiny check question",
                 "expectedAnswer": "short expected answer"
               },
+              "practice": [
+                {
+                  "type": "TRUE_FALSE",
+                  "question": "short question",
+                  "expectedBoolean": true
+                },
+                {
+                  "type": "MULTIPLE_CHOICE",
+                  "question": "short question",
+                  "options": ["...", "...", "..."],
+                  "correctOptions": [1]
+                }
+              ],
               "retryQuestion": "short easier retry question"
             }
 
-            If answeredQuestion is true, set "learningCard", "quickCheck", and "retryQuestion" to null.
+            If answeredQuestion is true, set "learningCard", "quickCheck", "practice", and "retryQuestion" to null.
             Keep "evaluation" short, supportive, and at most 2 sentences.
             Keep learningCard explanation under 70 words.
             LearningCard must focus only on what was missing in the user's answer.
+            For practice:
+            - generate 3 to 5 items
+            - use only TRUE_FALSE and MULTIPLE_CHOICE
+            - keep each question short
+            - MULTIPLE_CHOICE should have 3 or 4 options
             For quickCheck question:
             - ask exactly one tiny question
             - prefer true/false, choose one, or one short "why"
@@ -234,13 +259,15 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         String evaluation = parseEvaluation(content);
         LearningCard learningCard = parseLearningCard(content, answeredQuestion, evaluation);
         QuickCheck quickCheck = parseQuickCheck(content);
+        List<PracticeItem> practiceItems = parsePracticeItems(content, answeredQuestion);
         String retryQuestion = parseRetryQuestion(content, answeredQuestion);
         if (answeredQuestion) {
             quickCheck = null;
+            practiceItems = List.of();
             retryQuestion = null;
         }
 
-        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck, retryQuestion);
+        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck, practiceItems, retryQuestion);
     }
 
     private int parseScore(String content) {
@@ -328,6 +355,78 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         return retryQuestion.isBlank() ? null : retryQuestion;
     }
 
+    private List<PracticeItem> parsePracticeItems(String content, boolean answeredQuestion) {
+        if (answeredQuestion) {
+            return List.of();
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(content);
+            JsonNode practiceNode = root.path("practice");
+            if (!practiceNode.isArray()) {
+                return List.of();
+            }
+
+            List<PracticeItem> items = new ArrayList<>();
+            for (JsonNode item : practiceNode) {
+                String typeValue = item.path("type").asText("");
+                PracticeType type;
+                try {
+                    type = PracticeType.valueOf(typeValue);
+                } catch (Exception ignored) {
+                    continue;
+                }
+
+                String question = item.path("question").asText("").trim();
+                if (question.isBlank()) {
+                    continue;
+                }
+
+                if (type == PracticeType.TRUE_FALSE) {
+                    if (!item.has("expectedBoolean")) {
+                        continue;
+                    }
+                    items.add(new PracticeItem(type, question, List.of(), List.of(), item.path("expectedBoolean").asBoolean()));
+                    continue;
+                }
+
+                JsonNode optionsNode = item.path("options");
+                JsonNode correctNode = item.path("correctOptions");
+                if (!optionsNode.isArray() || !correctNode.isArray()) {
+                    continue;
+                }
+
+                List<String> options = new ArrayList<>();
+                for (JsonNode optionNode : optionsNode) {
+                    String option = optionNode.asText("").trim();
+                    if (!option.isBlank()) {
+                        options.add(option);
+                    }
+                }
+                if (options.isEmpty()) {
+                    continue;
+                }
+
+                List<Integer> correctOptions = new ArrayList<>();
+                for (JsonNode c : correctNode) {
+                    int index = c.asInt(0);
+                    if (index > 0) {
+                        correctOptions.add(index);
+                    }
+                }
+                if (correctOptions.isEmpty()) {
+                    continue;
+                }
+
+                items.add(new PracticeItem(type, question, options, correctOptions, null));
+            }
+            return items;
+        } catch (Exception ex) {
+            log.warn("Failed to parse practice items", ex);
+            return List.of();
+        }
+    }
+
     private QuickCheckResult parseQuickCheckResult(String content) {
         Matcher correctMatcher = QUICK_CHECK_CORRECT_PATTERN.matcher(content);
         boolean correct = correctMatcher.find() && Boolean.parseBoolean(correctMatcher.group(1).toLowerCase());
@@ -358,6 +457,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 evaluation,
                 new LearningCard("Key concept", "Review the concept and try again."),
                 null,
+                List.of(),
                 null
         );
     }
