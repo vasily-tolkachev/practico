@@ -79,6 +79,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                     evaluation.learningCard(),
                     evaluation.quickCheck(),
                     evaluation.practiceItems(),
+                    evaluation.retryRubric(),
                     evaluation.retryQuestion()
             ));
         } else {

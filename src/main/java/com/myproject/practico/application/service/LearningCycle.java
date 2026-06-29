@@ -9,6 +9,7 @@ public record LearningCycle(
         LearningCard learningCard,
         QuickCheck quickCheck,
         List<PracticeItem> practiceItems,
+        List<String> retryRubric,
         String retryQuestion
 ) {
 }

@@ -6,6 +6,6 @@ public class DefaultRetryMasteryPolicy implements RetryMasteryPolicy {
 
     @Override
     public boolean isMastered(EvaluationResult evaluation, UserConceptProgress progress, boolean quickCheckPassed) {
-        return quickCheckPassed && (evaluation.answeredQuestion() || evaluation.score() >= 7);
+        return quickCheckPassed && evaluation.answeredQuestion();
     }
 }

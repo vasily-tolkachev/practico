@@ -83,10 +83,11 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                   "correctOptions": [1]
                 }
               ],
+              "retryRubric": ["idea 1", "idea 2"],
               "retryQuestion": "short easier retry question"
             }
 
-            If answeredQuestion is true, set "learningCard", "quickCheck", "practice", and "retryQuestion" to null.
+            If answeredQuestion is true, set "learningCard", "quickCheck", "practice", "retryRubric", and "retryQuestion" to null.
             Keep "evaluation" short, supportive, and at most 2 sentences.
             Keep learningCard explanation under 70 words.
             LearningCard must focus only on what was missing in the user's answer.
@@ -95,6 +96,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             - use only TRUE_FALSE and MULTIPLE_CHOICE
             - keep each question short
             - MULTIPLE_CHOICE should have 3 or 4 options
+            - for MULTIPLE_CHOICE, correctOptions must be 1-based indexes: A=1, B=2, C=3, D=4
             For quickCheck question:
             - ask exactly one tiny question
             - prefer true/false, choose one, or one short "why"
@@ -105,6 +107,9 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             - make it easier than the original
             - ask for one key idea only
             - maximum 20 words
+            For retryRubric:
+            - return 2 to 4 short expected ideas
+            - each idea should be a concrete check target for retry evaluation
 
             Question:
             %s
@@ -114,6 +119,40 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
             Answer:
             %s
+            """;
+    private static final String RETRY_PROMPT = """
+            You are evaluating a retry answer after learning and practice.
+            The user has already read a learning card and completed practice.
+            Evaluate only against the retry rubric below.
+
+            Retry question:
+            %s
+
+            Question type:
+            %s
+
+            Retry rubric ideas:
+            %s
+
+            User answer:
+            %s
+
+            Return JSON only in this shape:
+            {
+              "score": number from 0 to 10,
+              "answeredQuestion": true or false,
+              "evaluation": "short constructive feedback",
+              "learningCard": null,
+              "quickCheck": null,
+              "practice": null,
+              "retryRubric": null,
+              "retryQuestion": null
+            }
+
+            Rules:
+            - Mark answeredQuestion true if the answer covers enough rubric ideas.
+            - Use rubric coverage as primary decision, not answer length.
+            - Keep feedback short (max 2 sentences).
             """;
     private static final String QUICK_CHECK_PROMPT = """
             You are checking a quick understanding question.
@@ -154,6 +193,8 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private static final Pattern QUICK_CHECK_EXPECTED_ANSWER_PATTERN =
             Pattern.compile("\"expectedAnswer\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern RETRY_QUESTION_PATTERN = Pattern.compile("\"retryQuestion\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern RETRY_RUBRIC_PATTERN = Pattern.compile("\"retryRubric\"\\s*:\\s*\\[([\\s\\S]*?)\\]");
+    private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern QUICK_CHECK_CORRECT_PATTERN = Pattern.compile("\"correct\"\\s*:\\s*(true|false)", Pattern.CASE_INSENSITIVE);
     private static final Pattern QUICK_CHECK_FEEDBACK_PATTERN = Pattern.compile("\"feedback\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
 
@@ -167,9 +208,17 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             return fallback("AI evaluation is unavailable: OPENAI_API_KEY is not configured.");
         }
 
+        boolean retryMode = request.retryRubric() != null && !request.retryRubric().isEmpty();
         String content = callModel(
-                "evaluation",
-                PROMPT.formatted(
+                retryMode ? "retry-evaluation" : "evaluation",
+                retryMode
+                        ? RETRY_PROMPT.formatted(
+                        request.question(),
+                        request.questionType() == null ? "UNSPECIFIED" : request.questionType().name(),
+                        formatRetryRubric(request.retryRubric()),
+                        request.answer()
+                )
+                        : PROMPT.formatted(
                         request.question(),
                         request.questionType() == null ? "UNSPECIFIED" : request.questionType().name(),
                         request.answer()
@@ -260,14 +309,16 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         LearningCard learningCard = parseLearningCard(content, answeredQuestion, evaluation);
         QuickCheck quickCheck = parseQuickCheck(content);
         List<PracticeItem> practiceItems = parsePracticeItems(content, answeredQuestion);
+        List<String> retryRubric = parseRetryRubric(content, answeredQuestion);
         String retryQuestion = parseRetryQuestion(content, answeredQuestion);
         if (answeredQuestion) {
             quickCheck = null;
             practiceItems = List.of();
+            retryRubric = List.of();
             retryQuestion = null;
         }
 
-        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck, practiceItems, retryQuestion);
+        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck, practiceItems, retryRubric, retryQuestion);
     }
 
     private int parseScore(String content) {
@@ -355,6 +406,25 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         return retryQuestion.isBlank() ? null : retryQuestion;
     }
 
+    private List<String> parseRetryRubric(String content, boolean answeredQuestion) {
+        if (answeredQuestion) {
+            return List.of();
+        }
+        Matcher arrayMatcher = RETRY_RUBRIC_PATTERN.matcher(content);
+        if (!arrayMatcher.find()) {
+            return List.of();
+        }
+        Matcher itemMatcher = JSON_STRING_PATTERN.matcher(arrayMatcher.group(1));
+        List<String> items = new ArrayList<>();
+        while (itemMatcher.find()) {
+            String item = unescape(itemMatcher.group(1)).trim();
+            if (!item.isBlank()) {
+                items.add(item);
+            }
+        }
+        return items;
+    }
+
     private List<PracticeItem> parsePracticeItems(String content, boolean answeredQuestion) {
         if (answeredQuestion) {
             return List.of();
@@ -410,9 +480,33 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 List<Integer> correctOptions = new ArrayList<>();
                 for (JsonNode c : correctNode) {
                     int index = c.asInt(0);
-                    if (index > 0) {
+                    if (index >= 0) {
                         correctOptions.add(index);
                     }
+                }
+                if (correctOptions.isEmpty()) {
+                    continue;
+                }
+
+                // Normalize clearly 0-based keys to 1-based (A=1, B=2, ...)
+                if (correctOptions.stream().anyMatch(i -> i == 0)) {
+                    List<Integer> normalized = new ArrayList<>();
+                    for (Integer i : correctOptions) {
+                        int shifted = i + 1;
+                        if (shifted > 0 && shifted <= options.size()) {
+                            normalized.add(shifted);
+                        }
+                    }
+                    correctOptions = normalized;
+                } else {
+                    // keep only valid 1-based indexes
+                    List<Integer> normalized = new ArrayList<>();
+                    for (Integer i : correctOptions) {
+                        if (i > 0 && i <= options.size()) {
+                            normalized.add(i);
+                        }
+                    }
+                    correctOptions = normalized;
                 }
                 if (correctOptions.isEmpty()) {
                     continue;
@@ -450,6 +544,23 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         return value == null ? "" : value;
     }
 
+    private String formatRetryRubric(List<String> retryRubric) {
+        if (retryRubric == null || retryRubric.isEmpty()) {
+            return "- (no rubric provided)";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String item : retryRubric) {
+            if (item == null || item.isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append("\n");
+            }
+            builder.append("- ").append(item.trim());
+        }
+        return builder.length() == 0 ? "- (no rubric provided)" : builder.toString();
+    }
+
     private EvaluationResult fallback(String evaluation) {
         return new EvaluationResult(
                 0,
@@ -457,6 +568,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 evaluation,
                 new LearningCard("Key concept", "Review the concept and try again."),
                 null,
+                List.of(),
                 List.of(),
                 null
         );

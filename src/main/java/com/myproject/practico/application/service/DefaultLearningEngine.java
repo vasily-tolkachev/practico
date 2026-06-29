@@ -5,6 +5,7 @@ import com.myproject.practico.domain.Question;
 import com.myproject.practico.domain.UserConceptProgress;
 
 import java.time.Instant;
+import java.util.List;
 
 public class DefaultLearningEngine implements LearningEngine {
 
@@ -95,10 +96,12 @@ public class DefaultLearningEngine implements LearningEngine {
         String evaluationQuestion = (retryQuestionText == null || retryQuestionText.isBlank())
                 ? currentQuestion.text()
                 : retryQuestionText;
-        EvaluationResult evaluationResult = evaluationService.evaluate(
+        List<String> retryRubric = session.currentCycle() == null ? List.of() : session.currentCycle().retryRubric();
+        EvaluationResult evaluationResult = evaluationService.evaluateRetry(
                 evaluationQuestion,
                 answer,
-                currentQuestion.questionType()
+                currentQuestion.questionType(),
+                retryRubric
         );
 
         Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
