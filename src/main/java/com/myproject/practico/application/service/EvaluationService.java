@@ -1,6 +1,7 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.domain.QuestionType;
 
 public class EvaluationService {
 
@@ -10,7 +11,7 @@ public class EvaluationService {
         this.evaluationPort = evaluationPort;
     }
 
-    public EvaluationResult evaluate(String question, String answer) {
-        return evaluationPort.evaluate(new EvaluationRequest(question, answer));
+    public EvaluationResult evaluate(String question, String answer, QuestionType questionType) {
+        return evaluationPort.evaluate(new EvaluationRequest(question, answer, questionType));
     }
 }

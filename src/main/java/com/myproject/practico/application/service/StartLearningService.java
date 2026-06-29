@@ -42,7 +42,15 @@ public class StartLearningService implements StartLearningUseCase {
             int order = getQuestionUseCase.conceptOrder(question.concept().id());
             int total = getQuestionUseCase.totalConcepts();
             if (order > 0 && total > 0) {
-                response.append("Progress: Concept ").append(order).append(" of ").append(total).append("\n\n");
+                response.append("Progress: Concept ").append(order).append(" of ").append(total);
+                if (question.microConcept() != null && question.microConcept().id() != null) {
+                    int microOrder = getQuestionUseCase.microConceptOrder(question.concept().id(), question.microConcept().id());
+                    int microTotal = getQuestionUseCase.totalMicroConcepts(question.concept().id());
+                    if (microOrder > 0 && microTotal > 0) {
+                        response.append(" | Micro ").append(microOrder).append(" of ").append(microTotal);
+                    }
+                }
+                response.append("\n\n");
             }
         }
 

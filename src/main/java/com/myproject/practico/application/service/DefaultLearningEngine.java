@@ -36,7 +36,11 @@ public class DefaultLearningEngine implements LearningEngine {
             LearningSessionStore.LearningSession session,
             Instant now
     ) {
-        EvaluationResult evaluationResult = evaluationService.evaluate(currentQuestion.text(), answer);
+        EvaluationResult evaluationResult = evaluationService.evaluate(
+                currentQuestion.text(),
+                answer,
+                currentQuestion.questionType()
+        );
 
         Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
         if (conceptId == null) {
@@ -56,6 +60,13 @@ public class DefaultLearningEngine implements LearningEngine {
 
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
         Long currentMicroConceptId = currentQuestion.microConcept() == null ? null : currentQuestion.microConcept().id();
+        Question nextQuestionInSameMicroConcept = getQuestionUseCase
+                .getNextInMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
+                .orElse(null);
+        if (nextQuestionInSameMicroConcept != null) {
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.QUESTION, nextQuestionInSameMicroConcept);
+        }
+
         Question nextQuestionInConcept = getQuestionUseCase
                 .getNextFromNextMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
@@ -80,7 +91,11 @@ public class DefaultLearningEngine implements LearningEngine {
             LearningSessionStore.LearningSession session,
             Instant now
     ) {
-        EvaluationResult evaluationResult = evaluationService.evaluate(currentQuestion.text(), answer);
+        EvaluationResult evaluationResult = evaluationService.evaluate(
+                currentQuestion.text(),
+                answer,
+                currentQuestion.questionType()
+        );
 
         Long conceptId = currentQuestion.concept() == null ? null : currentQuestion.concept().id();
         if (conceptId == null) {
@@ -101,6 +116,13 @@ public class DefaultLearningEngine implements LearningEngine {
 
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
         Long currentMicroConceptId = currentQuestion.microConcept() == null ? null : currentQuestion.microConcept().id();
+        Question nextQuestionInSameMicroConcept = getQuestionUseCase
+                .getNextInMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
+                .orElse(null);
+        if (nextQuestionInSameMicroConcept != null) {
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.QUESTION, nextQuestionInSameMicroConcept);
+        }
+
         Question nextQuestionInConcept = getQuestionUseCase
                 .getNextFromNextMicroConcept(conceptId, currentMicroConceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);

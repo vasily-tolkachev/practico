@@ -41,6 +41,20 @@ public class GetQuestionService implements GetQuestionUseCase {
     }
 
     @Override
+    public Optional<Question> getNextInMicroConcept(Long conceptId, Long microConceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
+        if (conceptId == null || microConceptId == null) {
+            return Optional.empty();
+        }
+
+        List<Question> questions = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds).stream()
+                .filter(question -> question.concept() != null && Objects.equals(question.concept().id(), conceptId))
+                .filter(question -> question.microConcept() != null && Objects.equals(question.microConcept().id(), microConceptId))
+                .toList();
+
+        return pickByDifficulty(questions, preferredDifficulty);
+    }
+
+    @Override
     public Optional<Question> getNextFromNextMicroConcept(
             Long conceptId,
             Long currentMicroConceptId,
@@ -181,6 +195,40 @@ public class GetQuestionService implements GetQuestionUseCase {
                 .filter(Objects::nonNull)
                 .distinct()
                 .count();
+    }
+
+    @Override
+    public int microConceptOrder(Long conceptId, Long microConceptId) {
+        if (conceptId == null || microConceptId == null) {
+            return 0;
+        }
+
+        List<Long> orderedMicroConceptIds = orderedMicroConceptIds(conceptId);
+        int index = orderedMicroConceptIds.indexOf(microConceptId);
+        return index < 0 ? 0 : index + 1;
+    }
+
+    @Override
+    public int totalMicroConcepts(Long conceptId) {
+        if (conceptId == null) {
+            return 0;
+        }
+        return orderedMicroConceptIds(conceptId).size();
+    }
+
+    private List<Long> orderedMicroConceptIds(Long conceptId) {
+        return questionPersistencePort.findAll().stream()
+                .filter(question -> question.concept() != null && Objects.equals(question.concept().id(), conceptId))
+                .map(Question::microConcept)
+                .filter(Objects::nonNull)
+                .filter(micro -> micro.id() != null)
+                .sorted(Comparator
+                        .comparing((com.myproject.practico.domain.MicroConcept micro) ->
+                                micro.sortOrder() == null ? Integer.MAX_VALUE : micro.sortOrder())
+                        .thenComparing(com.myproject.practico.domain.MicroConcept::id))
+                .map(com.myproject.practico.domain.MicroConcept::id)
+                .distinct()
+                .toList();
     }
 
     private Question randomFrom(List<Question> questions) {

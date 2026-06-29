@@ -37,6 +37,11 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             Do not require information that was not requested.
             Do not reward extra information.
             Do not penalize missing extra details if the question is correctly answered.
+            Use question type to scope expected depth:
+            - DEFINITION: concise meaning only.
+            - UNDERSTANDING: short "why/how" reasoning tied to the asked point.
+            - APPLICATION: practical use-case or decision in context.
+            - COMPARISON: key difference between asked options only.
 
             Use this score meaning:
             0-2: does not understand yet
@@ -70,6 +75,9 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             - do not ask for long explanations or multiple parts
 
             Question:
+            %s
+
+            Question type:
             %s
 
             Answer:
@@ -126,7 +134,14 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             return fallback("AI evaluation is unavailable: OPENAI_API_KEY is not configured.");
         }
 
-        String content = callModel("evaluation", PROMPT.formatted(request.question(), request.answer()));
+        String content = callModel(
+                "evaluation",
+                PROMPT.formatted(
+                        request.question(),
+                        request.questionType() == null ? "UNSPECIFIED" : request.questionType().name(),
+                        request.answer()
+                )
+        );
         if (content == null || content.isBlank()) {
             return fallback("AI evaluation is temporarily unavailable. Please try again.");
         }

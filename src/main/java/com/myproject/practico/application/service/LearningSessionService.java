@@ -46,6 +46,10 @@ public class LearningSessionService {
         learningSessionStore.setCurrentCycle(userId, currentCycle);
     }
 
+    public void markMicroConceptMastered(String userId, Long microConceptId) {
+        learningSessionStore.markMicroConceptMastered(userId, microConceptId);
+    }
+
     public Difficulty firstDifficulty() {
         return Difficulty.EASY;
     }

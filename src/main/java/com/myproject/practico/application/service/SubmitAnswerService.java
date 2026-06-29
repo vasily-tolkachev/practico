@@ -73,6 +73,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
         learningSessionService.setPhase(userId, learningResult.nextPhase());
+        markCurrentMicroConceptIfCompleted(userId, currentQuestion, learningResult.nextQuestion(), learningResult.nextPhase());
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             learningSessionService.setCurrentCycle(userId, new LearningCycle(evaluation.learningCard(), evaluation.quickCheck()));
         } else {
@@ -117,6 +118,13 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             int total = getQuestionUseCase.totalConcepts();
             if (order > 0 && total > 0) {
                 response.append("\n\nProgress: ").append(order).append(" / ").append(total);
+                if (nextQuestion.microConcept() != null && nextQuestion.microConcept().id() != null && nextQuestion.concept() != null) {
+                    int microOrder = getQuestionUseCase.microConceptOrder(nextQuestion.concept().id(), nextQuestion.microConcept().id());
+                    int microTotal = getQuestionUseCase.totalMicroConcepts(nextQuestion.concept().id());
+                    if (microOrder > 0 && microTotal > 0) {
+                        response.append(" | Micro ").append(microOrder).append(" / ").append(microTotal);
+                    }
+                }
             }
             if (nextQuestion.concept() != null) {
                 Long currentConceptId = currentQuestion == null || currentQuestion.concept() == null ? null : currentQuestion.concept().id();
@@ -150,6 +158,32 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             return trimmed;
         }
         return (sentences[0] + " " + sentences[1]).trim();
+    }
+
+    private void markCurrentMicroConceptIfCompleted(
+            String userId,
+            Question currentQuestion,
+            Question nextQuestion,
+            LearningPhase nextPhase
+    ) {
+        if (currentQuestion == null || currentQuestion.microConcept() == null || currentQuestion.microConcept().id() == null) {
+            return;
+        }
+
+        Long currentMicroConceptId = currentQuestion.microConcept().id();
+        if (nextPhase == LearningPhase.COMPLETED) {
+            learningSessionService.markMicroConceptMastered(userId, currentMicroConceptId);
+            return;
+        }
+
+        if (nextPhase != LearningPhase.QUESTION || nextQuestion == null || nextQuestion.microConcept() == null || nextQuestion.microConcept().id() == null) {
+            return;
+        }
+
+        Long nextMicroConceptId = nextQuestion.microConcept().id();
+        if (!currentMicroConceptId.equals(nextMicroConceptId)) {
+            learningSessionService.markMicroConceptMastered(userId, currentMicroConceptId);
+        }
     }
 
     private void persistAnswer(User user, Question currentQuestion, String answerText, EvaluationResult evaluation, Instant now) {

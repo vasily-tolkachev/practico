@@ -10,6 +10,7 @@ public class LearningSessionStore {
 
     private static final int MAX_LAST_SCORES = 3;
     private static final int MAX_ANSWERED_IDS = 100;
+    private static final int MAX_MASTERED_MICRO_CONCEPT_IDS = 200;
 
     private final Map<String, LearningSession> sessions = new ConcurrentHashMap<>();
 
@@ -37,6 +38,10 @@ public class LearningSessionStore {
         return Optional.ofNullable(sessions.get(userId));
     }
 
+    public void markMicroConceptMastered(String userId, Long microConceptId) {
+        sessions.computeIfPresent(userId, (id, session) -> session.withMasteredMicroConcept(microConceptId));
+    }
+
     public record LearningSession(
             String userId,
             Long currentConceptId,
@@ -45,11 +50,13 @@ public class LearningSessionStore {
             LearningCycle currentCycle,
             Deque<Integer> lastScores,
             Deque<Long> answeredQuestionIds,
+            Deque<Long> masteredMicroConceptIds,
             int answeredCount
     ) {
         public LearningSession {
             lastScores = new ArrayDeque<>(lastScores);
             answeredQuestionIds = new ArrayDeque<>(answeredQuestionIds);
+            masteredMicroConceptIds = new ArrayDeque<>(masteredMicroConceptIds);
         }
 
         public static LearningSession started(String userId, Long conceptId, Long questionId) {
@@ -59,6 +66,7 @@ public class LearningSessionStore {
                     questionId,
                     LearningPhase.QUESTION,
                     null,
+                    new ArrayDeque<>(),
                     new ArrayDeque<>(),
                     new ArrayDeque<>(),
                     0
@@ -73,6 +81,11 @@ public class LearningSessionStore {
         @Override
         public Deque<Long> answeredQuestionIds() {
             return new ArrayDeque<>(answeredQuestionIds);
+        }
+
+        @Override
+        public Deque<Long> masteredMicroConceptIds() {
+            return new ArrayDeque<>(masteredMicroConceptIds);
         }
 
         public boolean hasAnswered(Long questionId) {
@@ -105,6 +118,7 @@ public class LearningSessionStore {
                     this.currentCycle,
                     updatedScores,
                     updatedAnsweredQuestionIds,
+                    this.masteredMicroConceptIds,
                     this.answeredCount + 1
             );
         }
@@ -118,6 +132,7 @@ public class LearningSessionStore {
                     this.currentCycle,
                     this.lastScores,
                     this.answeredQuestionIds,
+                    this.masteredMicroConceptIds,
                     this.answeredCount
             );
         }
@@ -131,6 +146,7 @@ public class LearningSessionStore {
                     this.currentCycle,
                     this.lastScores,
                     this.answeredQuestionIds,
+                    this.masteredMicroConceptIds,
                     this.answeredCount
             );
         }
@@ -144,6 +160,31 @@ public class LearningSessionStore {
                     currentCycle,
                     this.lastScores,
                     this.answeredQuestionIds,
+                    this.masteredMicroConceptIds,
+                    this.answeredCount
+            );
+        }
+
+        public LearningSession withMasteredMicroConcept(Long microConceptId) {
+            if (microConceptId == null || this.masteredMicroConceptIds.contains(microConceptId)) {
+                return this;
+            }
+
+            Deque<Long> updatedMasteredMicroConceptIds = new ArrayDeque<>(this.masteredMicroConceptIds);
+            updatedMasteredMicroConceptIds.addLast(microConceptId);
+            while (updatedMasteredMicroConceptIds.size() > MAX_MASTERED_MICRO_CONCEPT_IDS) {
+                updatedMasteredMicroConceptIds.removeFirst();
+            }
+
+            return new LearningSession(
+                    this.userId,
+                    this.currentConceptId,
+                    this.currentQuestionId,
+                    this.phase,
+                    this.currentCycle,
+                    this.lastScores,
+                    this.answeredQuestionIds,
+                    updatedMasteredMicroConceptIds,
                     this.answeredCount
             );
         }
