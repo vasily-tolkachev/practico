@@ -85,19 +85,26 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
-        return buildFinalResponse(learningResult, updatedSession);
+        return buildFinalResponse(learningResult, updatedSession, currentQuestion);
     }
 
     private String buildFinalResponse(
             LearningResult learningResult,
-            LearningSessionStore.LearningSession session
+            LearningSessionStore.LearningSession session,
+            Question currentQuestion
     ) {
         EvaluationResult evaluation = learningResult.evaluation();
         StringBuilder response = new StringBuilder();
-        response.append("Score: ").append(evaluation.score()).append("/10\n\n");
-        response.append("Learning progress: answered ").append(session.answeredCount()).append(" questions");
-        response.append(", average ").append(String.format("%.1f", learningSessionService.averageLastScores(session))).append("/10\n\n");
-        response.append("Evaluation:\n").append(evaluation.evaluation());
+        response.append("Learning status: ");
+        if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
+            response.append("Good start.");
+        } else if (learningResult.conceptProgress() != null
+                && learningResult.conceptProgress().status() == com.myproject.practico.domain.ProgressStatus.MASTERED) {
+            response.append("Great, moving to the next concept.");
+        } else {
+            response.append("Nice improvement.");
+        }
+        response.append("\n\nFeedback:\n").append(evaluation.evaluation());
 
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             if (evaluation.learningCard() != null) {
@@ -112,13 +119,29 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         Question nextQuestion = learningResult.nextQuestion();
         if (nextQuestion != null && learningResult.nextPhase() == LearningPhase.QUESTION) {
+            int order = nextQuestion.concept() == null ? 0 : getQuestionUseCase.conceptOrder(nextQuestion.concept().id());
+            int total = getQuestionUseCase.totalConcepts();
+            if (order > 0 && total > 0) {
+                response.append("\n\nProgress: Concept ").append(order).append(" of ").append(total);
+            }
             if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
                 response.append("\n\nTopic: ").append(nextQuestion.concept().topic().name());
-                response.append("\nConcept: ").append(nextQuestion.concept().name());
+                Long currentConceptId = currentQuestion == null || currentQuestion.concept() == null ? null : currentQuestion.concept().id();
+                Long nextConceptId = nextQuestion.concept().id();
+                if (currentConceptId != null && !currentConceptId.equals(nextConceptId)) {
+                    response.append("\nNext concept: ").append(nextQuestion.concept().name());
+                } else {
+                    response.append("\nConcept: ").append(nextQuestion.concept().name());
+                }
             }
             response.append("\n\nNext question:\n").append(nextQuestion.text());
         } else {
-            response.append("\n\nLearning step: COMPLETED. Send /start to restart.");
+            response.append("\n\nCourse completed.");
+            int total = getQuestionUseCase.totalConcepts();
+            if (total > 0) {
+                response.append("\nYou completed ").append(total).append(" concepts.");
+            }
+            response.append("\nSend /start to begin a new run.");
         }
 
         return response.toString();

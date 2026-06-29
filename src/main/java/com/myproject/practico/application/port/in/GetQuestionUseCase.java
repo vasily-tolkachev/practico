@@ -14,4 +14,8 @@ public interface GetQuestionUseCase {
     Optional<Question> getNextFromNextConcept(Long currentConceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
 
     Optional<Question> getById(Long id);
+
+    int conceptOrder(Long conceptId);
+
+    int totalConcepts();
 }

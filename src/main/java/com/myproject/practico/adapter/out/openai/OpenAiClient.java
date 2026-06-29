@@ -26,26 +26,48 @@ import java.util.regex.Pattern;
 public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
     private static final String PROMPT = """
-            You are a technical learning coach.
+            You are a technical learning coach for beginners.
+            The user is learning this concept for the first time.
+            Do not grade as an interview.
+            Reward partial understanding.
+            If the user identified the core idea, treat it as a good learning answer.
+            The goal is learning progress, not filtering candidates.
+            Evaluate in any language. Ignore typos.
+            Evaluate ONLY the knowledge required to answer the asked question.
+            Do not require information that was not requested.
+            Do not reward extra information.
+            Do not penalize missing extra details if the question is correctly answered.
 
-            Evaluate the candidate answer in any language. Ignore typos.
+            Use this score meaning:
+            0-2: does not understand yet
+            3-5: has some idea
+            6-7: core idea understood
+            8-10: excellent explanation
 
             Return JSON only in this shape:
 
             {
               "score": number from 0 to 10,
+              "answeredQuestion": true or false,
               "evaluation": "short constructive evaluation",
               "learningCard": {
                 "title": "short title",
-                "explanation": "clear explanation of what to learn next"
+                "explanation": "very short explanation of what was missing"
               },
               "quickCheck": {
-                "question": "very short check question",
+                "question": "ONE tiny check question",
                 "expectedAnswer": "short expected answer"
               }
             }
 
-            If score is 8 or higher, set "learningCard" and "quickCheck" to null.
+            If answeredQuestion is true, set "learningCard" and "quickCheck" to null.
+            Keep "evaluation" short and supportive.
+            Keep learningCard explanation under 70 words.
+            LearningCard must focus only on what was missing in the user's answer.
+            For quickCheck question:
+            - ask exactly one tiny question
+            - prefer true/false, choose one, or one short "why"
+            - do not ask for long explanations or multiple parts
 
             Question:
             %s
@@ -77,6 +99,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             }
             """;
     private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(\\d+)");
+    private static final Pattern ANSWERED_QUESTION_PATTERN = Pattern.compile("\"answeredQuestion\"\\s*:\\s*(true|false)", Pattern.CASE_INSENSITIVE);
     private static final Pattern EVALUATION_PATTERN = Pattern.compile("\"evaluation\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern LEARNING_CARD_TEXT_PATTERN =
             Pattern.compile("\"learningCard\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
@@ -184,11 +207,15 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
     private EvaluationResult parseResult(String content) {
         int score = parseScore(content);
+        boolean answeredQuestion = parseAnsweredQuestion(content, score);
         String evaluation = parseEvaluation(content);
-        LearningCard learningCard = parseLearningCard(content, score, evaluation);
+        LearningCard learningCard = parseLearningCard(content, answeredQuestion, evaluation);
         QuickCheck quickCheck = parseQuickCheck(content);
+        if (answeredQuestion) {
+            quickCheck = null;
+        }
 
-        return new EvaluationResult(score, evaluation, learningCard, quickCheck);
+        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck);
     }
 
     private int parseScore(String content) {
@@ -208,7 +235,15 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         return value.isEmpty() ? "No evaluation provided." : value;
     }
 
-    private LearningCard parseLearningCard(String content, int score, String evaluation) {
+    private boolean parseAnsweredQuestion(String content, int score) {
+        Matcher matcher = ANSWERED_QUESTION_PATTERN.matcher(content);
+        if (matcher.find()) {
+            return Boolean.parseBoolean(matcher.group(1).toLowerCase());
+        }
+        return score >= 6;
+    }
+
+    private LearningCard parseLearningCard(String content, boolean answeredQuestion, String evaluation) {
         Matcher textMatcher = LEARNING_CARD_TEXT_PATTERN.matcher(content);
         if (textMatcher.find()) {
             String explanation = unescape(textMatcher.group(1)).trim();
@@ -227,7 +262,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             }
         }
 
-        if (score < 8) {
+        if (!answeredQuestion) {
             return new LearningCard("Key concept", evaluation);
         }
 
@@ -286,6 +321,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private EvaluationResult fallback(String evaluation) {
         return new EvaluationResult(
                 0,
+                false,
                 evaluation,
                 new LearningCard("Key concept", "Review the concept and try again."),
                 null

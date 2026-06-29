@@ -5,7 +5,7 @@ import com.myproject.practico.domain.UserConceptProgress;
 public class DefaultRetryMasteryPolicy implements RetryMasteryPolicy {
 
     @Override
-    public boolean isMastered(EvaluationResult evaluation, UserConceptProgress progress) {
-        return evaluation.score() >= 8;
+    public boolean isMastered(EvaluationResult evaluation, UserConceptProgress progress, boolean quickCheckPassed) {
+        return quickCheckPassed && (evaluation.answeredQuestion() || evaluation.score() >= 7);
     }
 }

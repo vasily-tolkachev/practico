@@ -15,6 +15,10 @@ public class UserConceptProgressService {
     }
 
     public UserConceptProgress update(Long userId, Long conceptId, int score, Instant updatedAt) {
+        return recordAttempt(userId, conceptId, score, updatedAt);
+    }
+
+    public UserConceptProgress recordAttempt(Long userId, Long conceptId, int score, Instant updatedAt) {
         UserConceptProgress existing = userConceptProgressPersistencePort
                 .findByUserIdAndConceptId(userId, conceptId)
                 .orElse(null);
@@ -30,6 +34,24 @@ public class UserConceptProgressService {
                 userId,
                 conceptId,
                 status,
+                correctAnswers,
+                totalAnswers,
+                updatedAt
+        );
+    }
+
+    public UserConceptProgress markMastered(Long userId, Long conceptId, Instant updatedAt) {
+        UserConceptProgress existing = userConceptProgressPersistencePort
+                .findByUserIdAndConceptId(userId, conceptId)
+                .orElse(null);
+
+        int totalAnswers = existing == null ? 0 : existing.totalAnswers();
+        int correctAnswers = existing == null ? 0 : existing.correctAnswers();
+
+        return userConceptProgressPersistencePort.upsert(
+                userId,
+                conceptId,
+                ProgressStatus.MASTERED,
                 correctAnswers,
                 totalAnswers,
                 updatedAt

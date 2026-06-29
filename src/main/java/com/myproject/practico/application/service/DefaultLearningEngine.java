@@ -44,14 +44,14 @@ public class DefaultLearningEngine implements LearningEngine {
             throw new IllegalStateException("Current question concept was not found.");
         }
 
-        UserConceptProgress conceptProgress = userConceptProgressService.update(
+        UserConceptProgress conceptProgress = userConceptProgressService.recordAttempt(
                 userId,
                 conceptId,
                 evaluationResult.score(),
                 now
         );
 
-        if (evaluationResult.score() < 8) {
+        if (!evaluationResult.answeredQuestion()) {
             return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
@@ -83,27 +83,25 @@ public class DefaultLearningEngine implements LearningEngine {
             throw new IllegalStateException("Current question concept was not found.");
         }
 
-        UserConceptProgress conceptProgress = userConceptProgressService.update(
+        UserConceptProgress conceptProgress = userConceptProgressService.recordAttempt(
                 userId,
                 conceptId,
                 evaluationResult.score(),
                 now
         );
 
-        if (!retryMasteryPolicy.isMastered(evaluationResult, conceptProgress)) {
+        boolean quickCheckPassed = session.phase() == LearningPhase.RETRY;
+        if (!retryMasteryPolicy.isMastered(evaluationResult, conceptProgress, quickCheckPassed)) {
             return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
+        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
-        Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
-                ? getQuestionUseCase
+        Question nextQuestion = getQuestionUseCase
                 .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
-                .orElse(null)
-                : getQuestionUseCase
-                .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
         LearningPhase nextPhase = nextQuestion == null ? LearningPhase.COMPLETED : LearningPhase.QUESTION;
-        return new LearningResult(evaluationResult, conceptProgress, nextPhase, nextQuestion);
+        return new LearningResult(evaluationResult, masteredProgress, nextPhase, nextQuestion);
     }
 }

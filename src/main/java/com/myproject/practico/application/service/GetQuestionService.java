@@ -61,7 +61,11 @@ public class GetQuestionService implements GetQuestionUseCase {
         Long targetConceptId = orderedConceptIds.stream()
                 .filter(id -> currentConceptId == null || id > currentConceptId)
                 .findFirst()
-                .orElse(orderedConceptIds.get(0));
+                .orElse(null);
+
+        if (targetConceptId == null) {
+            return Optional.empty();
+        }
 
         List<Question> questions = availableQuestions.stream()
                 .filter(question -> question.concept() != null && Objects.equals(question.concept().id(), targetConceptId))
@@ -77,6 +81,32 @@ public class GetQuestionService implements GetQuestionUseCase {
         }
 
         return questionPersistencePort.findById(id);
+    }
+
+    @Override
+    public int conceptOrder(Long conceptId) {
+        if (conceptId == null) {
+            return 0;
+        }
+
+        List<Long> orderedConceptIds = questionPersistencePort.findAll().stream()
+                .map(question -> question.concept() == null ? null : question.concept().id())
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+
+        int index = orderedConceptIds.indexOf(conceptId);
+        return index < 0 ? 0 : index + 1;
+    }
+
+    @Override
+    public int totalConcepts() {
+        return (int) questionPersistencePort.findAll().stream()
+                .map(question -> question.concept() == null ? null : question.concept().id())
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
     }
 
     private Question randomFrom(List<Question> questions) {

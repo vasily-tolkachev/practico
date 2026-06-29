@@ -5,6 +5,7 @@ import com.myproject.practico.domain.QuickCheck;
 
 public record EvaluationResult(
         int score,
+        boolean answeredQuestion,
         String evaluation,
         LearningCard learningCard,
         QuickCheck quickCheck
