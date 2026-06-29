@@ -4,5 +4,7 @@ public record Question(
         Long id,
         String text,
         Concept concept,
-        Difficulty difficulty
+        Difficulty difficulty,
+        MicroConcept microConcept,
+        QuestionType questionType
 ) {}

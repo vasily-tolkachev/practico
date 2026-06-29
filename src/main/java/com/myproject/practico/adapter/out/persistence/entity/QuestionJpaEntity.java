@@ -1,6 +1,7 @@
 package com.myproject.practico.adapter.out.persistence.entity;
 
 import com.myproject.practico.domain.Difficulty;
+import com.myproject.practico.domain.QuestionType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -27,11 +28,14 @@ public class QuestionJpaEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "concept_id", nullable = false)
-    private ConceptJpaEntity concept;
+    @JoinColumn(name = "micro_concept_id", nullable = false)
+    private MicroConceptJpaEntity microConcept;
 
     private String text;
 
     @Enumerated(EnumType.STRING)
     private Difficulty difficulty;
+
+    @Enumerated(EnumType.STRING)
+    private QuestionType questionType;
 }

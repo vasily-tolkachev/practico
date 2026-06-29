@@ -84,27 +84,21 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             learningSessionService.setCurrentQuestion(userId, null, null);
         }
 
-        LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
-        return buildFinalResponse(learningResult, updatedSession, currentQuestion);
+        return buildFinalResponse(learningResult, currentQuestion);
     }
 
     private String buildFinalResponse(
             LearningResult learningResult,
-            LearningSessionStore.LearningSession session,
             Question currentQuestion
     ) {
         EvaluationResult evaluation = learningResult.evaluation();
         StringBuilder response = new StringBuilder();
-        response.append("Learning status: ");
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             response.append("Good start.");
-        } else if (learningResult.conceptProgress() != null
-                && learningResult.conceptProgress().status() == com.myproject.practico.domain.ProgressStatus.MASTERED) {
-            response.append("Great, moving to the next concept.");
         } else {
             response.append("Nice improvement.");
         }
-        response.append("\n\nFeedback:\n").append(evaluation.evaluation());
+        response.append("\n\nFeedback:\n").append(conciseFeedback(evaluation.evaluation()));
 
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             if (evaluation.learningCard() != null) {
@@ -122,19 +116,18 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             int order = nextQuestion.concept() == null ? 0 : getQuestionUseCase.conceptOrder(nextQuestion.concept().id());
             int total = getQuestionUseCase.totalConcepts();
             if (order > 0 && total > 0) {
-                response.append("\n\nProgress: Concept ").append(order).append(" of ").append(total);
+                response.append("\n\nProgress: ").append(order).append(" / ").append(total);
             }
-            if (nextQuestion.concept() != null && nextQuestion.concept().topic() != null) {
-                response.append("\n\nTopic: ").append(nextQuestion.concept().topic().name());
+            if (nextQuestion.concept() != null) {
                 Long currentConceptId = currentQuestion == null || currentQuestion.concept() == null ? null : currentQuestion.concept().id();
                 Long nextConceptId = nextQuestion.concept().id();
                 if (currentConceptId != null && !currentConceptId.equals(nextConceptId)) {
-                    response.append("\nNext concept: ").append(nextQuestion.concept().name());
+                    response.append("\n\nNext concept\n").append(nextQuestion.concept().name());
                 } else {
-                    response.append("\nConcept: ").append(nextQuestion.concept().name());
+                    response.append("\n\nConcept\n").append(nextQuestion.concept().name());
                 }
             }
-            response.append("\n\nNext question:\n").append(nextQuestion.text());
+            response.append("\n\nQuestion\n").append(nextQuestion.text());
         } else {
             response.append("\n\nCourse completed.");
             int total = getQuestionUseCase.totalConcepts();
@@ -145,6 +138,18 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         return response.toString();
+    }
+
+    private String conciseFeedback(String feedback) {
+        if (feedback == null || feedback.isBlank()) {
+            return "Good work.";
+        }
+        String trimmed = feedback.trim();
+        String[] sentences = trimmed.split("(?<=[.!?])\\s+");
+        if (sentences.length <= 2) {
+            return trimmed;
+        }
+        return (sentences[0] + " " + sentences[1]).trim();
     }
 
     private void persistAnswer(User user, Question currentQuestion, String answerText, EvaluationResult evaluation, Instant now) {

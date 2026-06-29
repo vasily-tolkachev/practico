@@ -1,7 +1,6 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
-import com.myproject.practico.domain.ProgressStatus;
 import com.myproject.practico.domain.Question;
 import com.myproject.practico.domain.UserConceptProgress;
 
@@ -55,17 +54,14 @@ public class DefaultLearningEngine implements LearningEngine {
             return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
         }
 
+        UserConceptProgress masteredProgress = userConceptProgressService.markMastered(userId, conceptId, now);
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());
-        Question nextQuestion = (conceptProgress.status() == ProgressStatus.MASTERED)
-                ? getQuestionUseCase
+        Question nextQuestion = getQuestionUseCase
                 .getNextFromNextConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
-                .orElse(null)
-                : getQuestionUseCase
-                .getNextInConcept(conceptId, nextDifficulty, learningSessionService.excludedQuestionIds(session))
                 .orElse(null);
 
         LearningPhase nextPhase = nextQuestion == null ? LearningPhase.COMPLETED : LearningPhase.QUESTION;
-        return new LearningResult(evaluationResult, conceptProgress, nextPhase, nextQuestion);
+        return new LearningResult(evaluationResult, masteredProgress, nextPhase, nextQuestion);
     }
 
     @Override

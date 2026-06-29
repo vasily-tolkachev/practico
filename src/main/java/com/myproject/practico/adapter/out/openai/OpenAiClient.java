@@ -61,7 +61,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             }
 
             If answeredQuestion is true, set "learningCard" and "quickCheck" to null.
-            Keep "evaluation" short and supportive.
+            Keep "evaluation" short, supportive, and at most 2 sentences.
             Keep learningCard explanation under 70 words.
             LearningCard must focus only on what was missing in the user's answer.
             For quickCheck question:
