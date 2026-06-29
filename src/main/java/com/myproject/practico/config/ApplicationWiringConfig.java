@@ -14,10 +14,12 @@ import com.myproject.practico.application.port.out.UserConceptProgressPersistenc
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.EvaluationService;
 import com.myproject.practico.application.service.DefaultLearningEngine;
+import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
+import com.myproject.practico.application.service.RetryMasteryPolicy;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.LearningSessionStore;
@@ -62,17 +64,24 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public RetryMasteryPolicy retryMasteryPolicy() {
+        return new DefaultRetryMasteryPolicy();
+    }
+
+    @Bean
     public LearningEngine learningEngine(
             EvaluationService evaluationService,
             UserConceptProgressService userConceptProgressService,
             GetQuestionUseCase getQuestionUseCase,
-            LearningSessionService learningSessionService
+            LearningSessionService learningSessionService,
+            RetryMasteryPolicy retryMasteryPolicy
     ) {
         return new DefaultLearningEngine(
                 evaluationService,
                 userConceptProgressService,
                 getQuestionUseCase,
-                learningSessionService
+                learningSessionService,
+                retryMasteryPolicy
         );
     }
 
