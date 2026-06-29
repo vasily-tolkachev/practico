@@ -8,10 +8,12 @@ import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.MessengerPort;
+import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.EvaluationService;
+import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
 import com.myproject.practico.application.service.LearningEngine;
@@ -55,8 +57,8 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
-    public QuickCheckService quickCheckService() {
-        return new QuickCheckService();
+    public QuickCheckService quickCheckService(QuickCheckPort quickCheckPort) {
+        return new QuickCheckService(quickCheckPort);
     }
 
     @Bean
@@ -66,7 +68,7 @@ public class ApplicationWiringConfig {
             GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService
     ) {
-        return new LearningEngine(
+        return new DefaultLearningEngine(
                 evaluationService,
                 userConceptProgressService,
                 getQuestionUseCase,

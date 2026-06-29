@@ -53,7 +53,9 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         LearningResult learningResult;
         try {
-            learningResult = learningEngine.handleAnswer(user.id(), currentQuestion, answer, session, now);
+            learningResult = session.phase() == LearningPhase.RETRY
+                    ? learningEngine.handleRetryAnswer(user.id(), currentQuestion, answer, session, now)
+                    : learningEngine.handleQuestionAnswer(user.id(), currentQuestion, answer, session, now);
         } catch (IllegalStateException ex) {
             return "Current question concept was not found. Send /start to restart.";
         }

@@ -1,8 +1,11 @@
 package com.myproject.practico.adapter.out.openai;
 
 import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.service.EvaluationRequest;
 import com.myproject.practico.application.service.EvaluationResult;
+import com.myproject.practico.application.service.QuickCheckRequest;
+import com.myproject.practico.application.service.QuickCheckResult;
 import com.myproject.practico.config.OpenAiProperties;
 import com.myproject.practico.domain.LearningCard;
 import com.myproject.practico.domain.QuickCheck;
@@ -20,7 +23,7 @@ import java.util.regex.Pattern;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class OpenAiClient implements EvaluationPort {
+public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
     private static final String PROMPT = """
             You are a technical learning coach.
@@ -50,6 +53,29 @@ public class OpenAiClient implements EvaluationPort {
             Answer:
             %s
             """;
+    private static final String QUICK_CHECK_PROMPT = """
+            You are checking a quick understanding question.
+
+            Question:
+            %s
+
+            Expected answer:
+            %s
+
+            User answer:
+            %s
+
+            Determine whether the user's answer demonstrates understanding.
+
+            The wording does NOT need to match.
+            Accept synonyms and equivalent explanations.
+
+            Return JSON only in this shape:
+            {
+              "correct": true,
+              "feedback": "short constructive feedback"
+            }
+            """;
     private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(\\d+)");
     private static final Pattern EVALUATION_PATTERN = Pattern.compile("\"evaluation\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern LEARNING_CARD_TEXT_PATTERN =
@@ -64,20 +90,55 @@ public class OpenAiClient implements EvaluationPort {
             Pattern.compile("\"question\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern QUICK_CHECK_EXPECTED_ANSWER_PATTERN =
             Pattern.compile("\"expectedAnswer\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern QUICK_CHECK_CORRECT_PATTERN = Pattern.compile("\"correct\"\\s*:\\s*(true|false)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern QUICK_CHECK_FEEDBACK_PATTERN = Pattern.compile("\"feedback\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
 
     private final OpenAiProperties properties;
 
     @Override
     public EvaluationResult evaluate(EvaluationRequest request) {
-        String model = properties.model() == null || properties.model().isBlank()
-                ? "gpt-4.1-mini"
-                : properties.model();
         String apiKey = properties.apiKey();
-
         if (apiKey == null || apiKey.isBlank()) {
             log.error("OpenAI evaluation skipped: OPENAI_API_KEY is empty");
             return fallback("AI evaluation is unavailable: OPENAI_API_KEY is not configured.");
         }
+
+        String content = callModel("evaluation", PROMPT.formatted(request.question(), request.answer()));
+        if (content == null || content.isBlank()) {
+            return fallback("AI evaluation is temporarily unavailable. Please try again.");
+        }
+
+        return parseResult(content);
+    }
+
+    @Override
+    public QuickCheckResult evaluate(QuickCheckRequest request) {
+        String apiKey = properties.apiKey();
+        if (apiKey == null || apiKey.isBlank()) {
+            log.error("OpenAI quick check skipped: OPENAI_API_KEY is empty");
+            return quickCheckFallback("Quick check is temporarily unavailable.");
+        }
+
+        String content = callModel(
+                "quick-check",
+                QUICK_CHECK_PROMPT.formatted(
+                        safeValue(request.question()),
+                        safeValue(request.expectedAnswer()),
+                        safeValue(request.userAnswer())
+                )
+        );
+        if (content == null || content.isBlank()) {
+            return quickCheckFallback("Quick check is temporarily unavailable.");
+        }
+
+        return parseQuickCheckResult(content);
+    }
+
+    private String callModel(String useCase, String prompt) {
+        String model = properties.model() == null || properties.model().isBlank()
+                ? "gpt-4.1-mini"
+                : properties.model();
+        String apiKey = properties.apiKey();
 
         RestClient restClient = RestClient.builder()
                 .baseUrl("https://api.openai.com/v1")
@@ -92,7 +153,7 @@ public class OpenAiClient implements EvaluationPort {
                             model,
                             new Message[]{
                                     new Message("system", "You are a concise and strict evaluator."),
-                                    new Message("user", PROMPT.formatted(request.question(), request.answer()))
+                                    new Message("user", prompt)
                             },
                             new ResponseFormat("json_object")
                     ))
@@ -100,23 +161,24 @@ public class OpenAiClient implements EvaluationPort {
                     .body(ChatCompletionResponse.class);
 
             if (response == null || response.choices() == null || response.choices().length == 0) {
-                log.error("OpenAI evaluation failed: empty response. model={}", model);
-                return fallback("AI evaluation is temporarily unavailable. Empty response from model.");
+                log.error("OpenAI {} failed: empty response. model={}", useCase, model);
+                return null;
             }
 
-            return parseResult(response.choices()[0].message().content());
+            return response.choices()[0].message().content();
         } catch (RestClientResponseException ex) {
             log.error(
-                    "OpenAI evaluation HTTP error. model={}, status={}, body={}",
+                    "OpenAI {} HTTP error. model={}, status={}, body={}",
+                    useCase,
                     model,
                     ex.getStatusCode(),
                     ex.getResponseBodyAsString(),
                     ex
             );
-            return fallback("AI evaluation is temporarily unavailable. Check OPENAI_API_KEY / OPENAI_MODEL.");
+            return null;
         } catch (Exception ex) {
-            log.error("OpenAI evaluation failed. model={}", model, ex);
-            return fallback("AI evaluation is temporarily unavailable. Please try again.");
+            log.error("OpenAI {} failed. model={}", useCase, model, ex);
+            return null;
         }
     }
 
@@ -198,12 +260,27 @@ public class OpenAiClient implements EvaluationPort {
         return new QuickCheck(question, expectedAnswer);
     }
 
+    private QuickCheckResult parseQuickCheckResult(String content) {
+        Matcher correctMatcher = QUICK_CHECK_CORRECT_PATTERN.matcher(content);
+        boolean correct = correctMatcher.find() && Boolean.parseBoolean(correctMatcher.group(1).toLowerCase());
+        String feedback = parseField(content, QUICK_CHECK_FEEDBACK_PATTERN, correct ? "Correct." : "Almost. Try again.");
+        return new QuickCheckResult(correct, feedback);
+    }
+
     private String unescape(String text) {
         return text.replace("\\n", "\n").replace("\\\"", "\"");
     }
 
     private int clampScore(int rawScore) {
         return Math.max(0, Math.min(10, rawScore));
+    }
+
+    private QuickCheckResult quickCheckFallback(String feedback) {
+        return new QuickCheckResult(false, feedback);
+    }
+
+    private String safeValue(String value) {
+        return value == null ? "" : value;
     }
 
     private EvaluationResult fallback(String evaluation) {

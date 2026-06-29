@@ -74,16 +74,24 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
                 return "Quick check is unavailable. Please continue with the next answer.";
             }
 
-            if (!quickCheckService.isCorrect(text, session.currentCycle().quickCheck())) {
-                return "Not quite yet. Try again:\n" + session.currentCycle().quickCheck().question();
+            QuickCheckResult quickCheckResult = quickCheckService.check(text, session.currentCycle().quickCheck());
+            if (!quickCheckResult.correct()) {
+                String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
+                        ? "Not quite yet."
+                        : quickCheckResult.feedback();
+                return feedback + "\n\nTry again:\n" + session.currentCycle().quickCheck().question();
             }
 
-            learningSessionService.setPhase(userId, LearningPhase.QUESTION);
+            learningSessionService.setCurrentCycle(userId, null);
+            learningSessionService.setPhase(userId, LearningPhase.RETRY);
             Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
             if (currentQuestion == null || currentQuestion.text() == null || currentQuestion.text().isBlank()) {
                 return "Correct quick check. Now retry the previous question.";
             }
-            return "Correct quick check.\n\nRetry question:\n" + currentQuestion.text();
+            String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
+                    ? "Correct quick check."
+                    : quickCheckResult.feedback();
+            return feedback + "\n\nRetry question:\n" + currentQuestion.text();
         }
 
         return submitAnswerUseCase.submit(userId, text);
