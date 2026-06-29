@@ -72,9 +72,9 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         learningSessionService.recordAnswerAndSetNextQuestion(userId, evaluation.score(), nextQuestionId);
         learningSessionService.setPhase(userId, learningResult.nextPhase());
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
-            learningSessionService.setPendingMaterials(userId, evaluation.learningCard(), evaluation.quickCheck());
+            learningSessionService.setCurrentCycle(userId, new LearningCycle(evaluation.learningCard(), evaluation.quickCheck()));
         } else {
-            learningSessionService.setPendingMaterials(userId, null, null);
+            learningSessionService.setCurrentCycle(userId, null);
         }
         if (learningResult.nextPhase() == LearningPhase.QUESTION && nextQuestion != null && nextQuestion.concept() != null) {
             learningSessionService.setCurrentQuestion(userId, nextQuestion.concept().id(), nextQuestion.id());

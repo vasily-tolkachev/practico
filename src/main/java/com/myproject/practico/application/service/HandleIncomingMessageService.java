@@ -52,10 +52,13 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
 
         if (session.phase() == LearningPhase.LEARNING_CARD) {
             learningSessionService.setPhase(userId, LearningPhase.QUICK_CHECK);
-            if (session.pendingQuickCheck() == null || session.pendingQuickCheck().question() == null || session.pendingQuickCheck().question().isBlank()) {
+            if (session.currentCycle() == null
+                    || session.currentCycle().quickCheck() == null
+                    || session.currentCycle().quickCheck().question() == null
+                    || session.currentCycle().quickCheck().question().isBlank()) {
                 return "Quick check is unavailable. Please continue with the next answer.";
             }
-            return "Quick check:\n" + session.pendingQuickCheck().question();
+            return "Quick check:\n" + session.currentCycle().quickCheck().question();
         }
 
         return submitAnswerUseCase.submit(userId, text);
