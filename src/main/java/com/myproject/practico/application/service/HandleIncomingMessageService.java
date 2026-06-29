@@ -1,26 +1,34 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
+import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.MessengerPort;
+import com.myproject.practico.domain.Question;
 
 public class HandleIncomingMessageService implements HandleIncomingMessageUseCase {
 
     private final CommandInterpreterPort commandInterpreterPort;
     private final SubmitAnswerUseCase submitAnswerUseCase;
+    private final GetQuestionUseCase getQuestionUseCase;
     private final LearningSessionService learningSessionService;
+    private final QuickCheckService quickCheckService;
     private final MessengerPort messengerPort;
 
     public HandleIncomingMessageService(
             CommandInterpreterPort commandInterpreterPort,
             SubmitAnswerUseCase submitAnswerUseCase,
+            GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService,
+            QuickCheckService quickCheckService,
             MessengerPort messengerPort
     ) {
         this.commandInterpreterPort = commandInterpreterPort;
         this.submitAnswerUseCase = submitAnswerUseCase;
+        this.getQuestionUseCase = getQuestionUseCase;
         this.learningSessionService = learningSessionService;
+        this.quickCheckService = quickCheckService;
         this.messengerPort = messengerPort;
     }
 
@@ -59,6 +67,23 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
                 return "Quick check is unavailable. Please continue with the next answer.";
             }
             return "Quick check:\n" + session.currentCycle().quickCheck().question();
+        }
+
+        if (session.phase() == LearningPhase.QUICK_CHECK) {
+            if (session.currentCycle() == null || session.currentCycle().quickCheck() == null) {
+                return "Quick check is unavailable. Please continue with the next answer.";
+            }
+
+            if (!quickCheckService.isCorrect(text, session.currentCycle().quickCheck())) {
+                return "Not quite yet. Try again:\n" + session.currentCycle().quickCheck().question();
+            }
+
+            learningSessionService.setPhase(userId, LearningPhase.QUESTION);
+            Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
+            if (currentQuestion == null || currentQuestion.text() == null || currentQuestion.text().isBlank()) {
+                return "Correct quick check. Now retry the previous question.";
+            }
+            return "Correct quick check.\n\nRetry question:\n" + currentQuestion.text();
         }
 
         return submitAnswerUseCase.submit(userId, text);

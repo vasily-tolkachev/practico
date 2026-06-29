@@ -19,6 +19,7 @@ import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.LearningSessionStore;
+import com.myproject.practico.application.service.QuickCheckService;
 import com.myproject.practico.application.service.UserConceptProgressService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +52,11 @@ public class ApplicationWiringConfig {
             UserConceptProgressPersistencePort userConceptProgressPersistencePort
     ) {
         return new UserConceptProgressService(userConceptProgressPersistencePort);
+    }
+
+    @Bean
+    public QuickCheckService quickCheckService() {
+        return new QuickCheckService();
     }
 
     @Bean
@@ -97,13 +103,17 @@ public class ApplicationWiringConfig {
     public HandleIncomingMessageUseCase handleIncomingMessageUseCase(
             CommandInterpreterPort commandInterpreterPort,
             SubmitAnswerUseCase submitAnswerUseCase,
+            GetQuestionUseCase getQuestionUseCase,
             LearningSessionService learningSessionService,
+            QuickCheckService quickCheckService,
             MessengerPort messengerPort
     ) {
         return new HandleIncomingMessageService(
                 commandInterpreterPort,
                 submitAnswerUseCase,
+                getQuestionUseCase,
                 learningSessionService,
+                quickCheckService,
                 messengerPort
         );
     }
