@@ -62,10 +62,11 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
               "quickCheck": {
                 "question": "ONE tiny check question",
                 "expectedAnswer": "short expected answer"
-              }
+              },
+              "retryQuestion": "short easier retry question"
             }
 
-            If answeredQuestion is true, set "learningCard" and "quickCheck" to null.
+            If answeredQuestion is true, set "learningCard", "quickCheck", and "retryQuestion" to null.
             Keep "evaluation" short, supportive, and at most 2 sentences.
             Keep learningCard explanation under 70 words.
             LearningCard must focus only on what was missing in the user's answer.
@@ -73,6 +74,12 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             - ask exactly one tiny question
             - prefer true/false, choose one, or one short "why"
             - do not ask for long explanations or multiple parts
+            For retryQuestion:
+            - do not repeat the original wording
+            - test the same idea as the original question
+            - make it easier than the original
+            - ask for one key idea only
+            - maximum 20 words
 
             Question:
             %s
@@ -121,6 +128,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             Pattern.compile("\"question\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern QUICK_CHECK_EXPECTED_ANSWER_PATTERN =
             Pattern.compile("\"expectedAnswer\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern RETRY_QUESTION_PATTERN = Pattern.compile("\"retryQuestion\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern QUICK_CHECK_CORRECT_PATTERN = Pattern.compile("\"correct\"\\s*:\\s*(true|false)", Pattern.CASE_INSENSITIVE);
     private static final Pattern QUICK_CHECK_FEEDBACK_PATTERN = Pattern.compile("\"feedback\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"");
 
@@ -226,11 +234,13 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         String evaluation = parseEvaluation(content);
         LearningCard learningCard = parseLearningCard(content, answeredQuestion, evaluation);
         QuickCheck quickCheck = parseQuickCheck(content);
+        String retryQuestion = parseRetryQuestion(content, answeredQuestion);
         if (answeredQuestion) {
             quickCheck = null;
+            retryQuestion = null;
         }
 
-        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck);
+        return new EvaluationResult(score, answeredQuestion, evaluation, learningCard, quickCheck, retryQuestion);
     }
 
     private int parseScore(String content) {
@@ -310,6 +320,14 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         return new QuickCheck(question, expectedAnswer);
     }
 
+    private String parseRetryQuestion(String content, boolean answeredQuestion) {
+        if (answeredQuestion) {
+            return null;
+        }
+        String retryQuestion = parseField(content, RETRY_QUESTION_PATTERN, "");
+        return retryQuestion.isBlank() ? null : retryQuestion;
+    }
+
     private QuickCheckResult parseQuickCheckResult(String content) {
         Matcher correctMatcher = QUICK_CHECK_CORRECT_PATTERN.matcher(content);
         boolean correct = correctMatcher.find() && Boolean.parseBoolean(correctMatcher.group(1).toLowerCase());
@@ -339,6 +357,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 false,
                 evaluation,
                 new LearningCard("Key concept", "Review the concept and try again."),
+                null,
                 null
         );
     }

@@ -8,5 +8,6 @@ public record EvaluationResult(
         boolean answeredQuestion,
         String evaluation,
         LearningCard learningCard,
-        QuickCheck quickCheck
+        QuickCheck quickCheck,
+        String retryQuestion
 ) {}

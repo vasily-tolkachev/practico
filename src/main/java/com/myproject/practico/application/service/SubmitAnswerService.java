@@ -75,7 +75,11 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         learningSessionService.setPhase(userId, learningResult.nextPhase());
         markCurrentMicroConceptIfCompleted(userId, currentQuestion, learningResult.nextQuestion(), learningResult.nextPhase());
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
-            learningSessionService.setCurrentCycle(userId, new LearningCycle(evaluation.learningCard(), evaluation.quickCheck()));
+            learningSessionService.setCurrentCycle(userId, new LearningCycle(
+                    evaluation.learningCard(),
+                    evaluation.quickCheck(),
+                    evaluation.retryQuestion()
+            ));
         } else {
             learningSessionService.setCurrentCycle(userId, null);
         }

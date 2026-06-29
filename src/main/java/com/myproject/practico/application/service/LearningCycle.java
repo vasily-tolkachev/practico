@@ -5,6 +5,7 @@ import com.myproject.practico.domain.QuickCheck;
 
 public record LearningCycle(
         LearningCard learningCard,
-        QuickCheck quickCheck
+        QuickCheck quickCheck,
+        String retryQuestion
 ) {
 }

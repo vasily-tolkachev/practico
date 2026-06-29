@@ -19,7 +19,7 @@ INSERT INTO micro_concept (id, concept_id, name, sort_order) VALUES
 
 INSERT INTO question (id, micro_concept_id, text, difficulty, question_type) VALUES
     (1, 1, 'Why is creating dependencies with new inside a class considered a design problem?', 'EASY', 'UNDERSTANDING'),
-    (2, 1, 'How does dependency injection reduce coupling and make components easier to replace?', 'MEDIUM', 'UNDERSTANDING'),
+    (2, 1, 'Suppose UserService creates EmailService with new. How would dependency injection improve this design and make replacements easier?', 'MEDIUM', 'APPLICATION'),
     (3, 2, 'Why is constructor injection generally preferred over field injection?', 'EASY', 'COMPARISON'),
     (4, 2, 'When does constructor injection improve fail-fast behavior and testability?', 'MEDIUM', 'APPLICATION'),
     (5, 3, 'When is setter injection a better choice than constructor injection?', 'EASY', 'COMPARISON'),

@@ -5,6 +5,7 @@ import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.MessengerPort;
+import com.myproject.practico.domain.Difficulty;
 import com.myproject.practico.domain.Question;
 
 public class HandleIncomingMessageService implements HandleIncomingMessageUseCase {
@@ -82,16 +83,39 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
                 return feedback + "\n\nTry again:\n" + session.currentCycle().quickCheck().question();
             }
 
-            learningSessionService.setCurrentCycle(userId, null);
             learningSessionService.setPhase(userId, LearningPhase.RETRY);
             Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
             if (currentQuestion == null || currentQuestion.text() == null || currentQuestion.text().isBlank()) {
                 return "Correct quick check. Now retry the previous question.";
             }
+
+            String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
+            if (retryQuestionText == null || retryQuestionText.isBlank()) {
+                Question retryQuestion = currentQuestion;
+                if (currentQuestion.concept() != null
+                        && currentQuestion.concept().id() != null
+                        && currentQuestion.microConcept() != null
+                        && currentQuestion.microConcept().id() != null) {
+                    Question candidate = getQuestionUseCase
+                            .getNextInMicroConcept(
+                                    currentQuestion.concept().id(),
+                                    currentQuestion.microConcept().id(),
+                                    Difficulty.MEDIUM,
+                                    learningSessionService.excludedQuestionIds(session)
+                            )
+                            .orElse(null);
+                    if (candidate != null && candidate.id() != null) {
+                        learningSessionService.setCurrentQuestion(userId, currentQuestion.concept().id(), candidate.id());
+                        retryQuestion = candidate;
+                    }
+                }
+                retryQuestionText = retryQuestion.text();
+            }
+
             String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
                     ? "Correct quick check."
                     : quickCheckResult.feedback();
-            return feedback + "\n\nRetry question:\n" + currentQuestion.text();
+            return feedback + "\n\nRetry question:\n" + retryQuestionText;
         }
 
         return submitAnswerUseCase.submit(userId, text);

@@ -91,8 +91,12 @@ public class DefaultLearningEngine implements LearningEngine {
             LearningSessionStore.LearningSession session,
             Instant now
     ) {
+        String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
+        String evaluationQuestion = (retryQuestionText == null || retryQuestionText.isBlank())
+                ? currentQuestion.text()
+                : retryQuestionText;
         EvaluationResult evaluationResult = evaluationService.evaluate(
-                currentQuestion.text(),
+                evaluationQuestion,
                 answer,
                 currentQuestion.questionType()
         );

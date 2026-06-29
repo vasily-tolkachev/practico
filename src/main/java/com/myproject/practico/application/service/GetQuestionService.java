@@ -65,15 +65,15 @@ public class GetQuestionService implements GetQuestionUseCase {
             return Optional.empty();
         }
 
-        List<Question> questionsInConcept = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds).stream()
+        List<Question> allQuestionsInConcept = questionPersistencePort.findAll().stream()
                 .filter(question -> question.concept() != null && Objects.equals(question.concept().id(), conceptId))
                 .filter(question -> question.microConcept() != null && question.microConcept().id() != null)
                 .toList();
-        if (questionsInConcept.isEmpty()) {
+        if (allQuestionsInConcept.isEmpty()) {
             return Optional.empty();
         }
 
-        List<Long> orderedMicroConceptIds = questionsInConcept.stream()
+        List<Long> orderedMicroConceptIds = allQuestionsInConcept.stream()
                 .map(Question::microConcept)
                 .filter(Objects::nonNull)
                 .sorted(Comparator
@@ -93,13 +93,16 @@ public class GetQuestionService implements GetQuestionUseCase {
             targetMicroConceptId = orderedMicroConceptIds.get(0);
         } else {
             int currentIndex = orderedMicroConceptIds.indexOf(currentMicroConceptId);
-            if (currentIndex < 0 || currentIndex + 1 >= orderedMicroConceptIds.size()) {
+            if (currentIndex < 0) {
+                targetMicroConceptId = orderedMicroConceptIds.get(0);
+            } else if (currentIndex + 1 >= orderedMicroConceptIds.size()) {
                 return Optional.empty();
+            } else {
+                targetMicroConceptId = orderedMicroConceptIds.get(currentIndex + 1);
             }
-            targetMicroConceptId = orderedMicroConceptIds.get(currentIndex + 1);
         }
 
-        List<Question> questions = questionsInConcept.stream()
+        List<Question> questions = filterExcluded(allQuestionsInConcept, excludedQuestionIds).stream()
                 .filter(question -> question.microConcept() != null && Objects.equals(question.microConcept().id(), targetMicroConceptId))
                 .toList();
 
