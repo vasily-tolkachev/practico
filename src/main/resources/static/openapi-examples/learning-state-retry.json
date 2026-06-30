@@ -1,0 +1,14 @@
+{
+  "active": true,
+  "userId": "123",
+  "phase": "RETRY",
+  "topic": { "id": 10, "name": "Космос" },
+  "concept": { "id": 104, "name": "Звёзды" },
+  "microConcept": { "id": 1019, "name": "Что такое звезда", "sortOrder": 1 },
+  "progress": { "conceptOrder": 4, "totalConcepts": 9, "microConceptOrder": 1, "totalMicroConcepts": 6, "answeredCount": 1 },
+  "question": { "id": 2019, "text": "Что отличает звезду от планеты?", "difficulty": "EASY", "questionType": "COMPARISON" },
+  "learningCard": { "title": "Ключевая идея", "explanation": "Звезда излучает собственный свет." },
+  "quickCheck": { "question": "Верно/Неверно: звезда светит сама.", "expectedAnswer": "Верно" },
+  "practice": { "currentIndex": 3, "totalItems": 3, "items": [{ "type": "TRUE_FALSE", "question": "Звезда светит сама.", "options": [] }] },
+  "retry": { "question": "В чём главное отличие звезды от планеты?", "rubric": ["собственный свет"] }
+}

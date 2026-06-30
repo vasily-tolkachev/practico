@@ -1,0 +1,14 @@
+{
+  "active": false,
+  "userId": "123",
+  "phase": "COMPLETED",
+  "topic": null,
+  "concept": null,
+  "microConcept": null,
+  "progress": { "conceptOrder": null, "totalConcepts": 9, "microConceptOrder": null, "totalMicroConcepts": null, "answeredCount": 0 },
+  "question": null,
+  "learningCard": null,
+  "quickCheck": null,
+  "practice": { "currentIndex": null, "totalItems": 0, "items": [] },
+  "retry": null
+}

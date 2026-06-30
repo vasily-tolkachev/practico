@@ -1,15 +1,21 @@
 package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.adapter.in.rest.dto.LearningStateResponse;
-import com.myproject.practico.application.port.in.GetQuestionUseCase;
+import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.service.LearningCycle;
 import com.myproject.practico.application.service.LearningPhase;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.LearningSessionStore;
-import com.myproject.practico.application.service.PracticeItem;
-import com.myproject.practico.domain.Question;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,149 +27,110 @@ import java.util.List;
 public class LearningStateController {
 
     private final LearningSessionService learningSessionService;
-    private final GetQuestionUseCase getQuestionUseCase;
+    private final SubmitAnswerUseCase submitAnswerUseCase;
+    private final LearningStateMapper learningStateMapper;
 
     public LearningStateController(
             LearningSessionService learningSessionService,
-            GetQuestionUseCase getQuestionUseCase
+            SubmitAnswerUseCase submitAnswerUseCase,
+            LearningStateMapper learningStateMapper
     ) {
         this.learningSessionService = learningSessionService;
-        this.getQuestionUseCase = getQuestionUseCase;
+        this.submitAnswerUseCase = submitAnswerUseCase;
+        this.learningStateMapper = learningStateMapper;
     }
 
+    @Operation(summary = "Current learning state", description = "Returns LearningState v1 for the user.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Learning state payload",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LearningStateResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "QUESTION", externalValue = "/openapi-examples/learning-state-question.json"),
+                                    @ExampleObject(name = "LEARNING_CARD", externalValue = "/openapi-examples/learning-state-learning-card.json"),
+                                    @ExampleObject(name = "PRACTICE", externalValue = "/openapi-examples/learning-state-practice.json"),
+                                    @ExampleObject(name = "RETRY", externalValue = "/openapi-examples/learning-state-retry.json"),
+                                    @ExampleObject(name = "COMPLETED", externalValue = "/openapi-examples/learning-state-completed.json")
+                            }
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid userId")
+    })
     @GetMapping("/state")
     public ResponseEntity<LearningStateResponse> state(@RequestParam String userId) {
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
+        return ResponseEntity.ok(learningStateMapper.toState(userId));
+    }
 
-        LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
-        if (session == null) {
-            return ResponseEntity.ok(inactiveState(userId));
+    @Operation(summary = "Submit answer", description = "Accepts user answer and returns updated LearningState v1.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Updated learning state",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LearningStateResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload")
+    })
+    @PostMapping("/answer")
+    public ResponseEntity<LearningStateResponse> answer(@RequestBody AnswerRequest request) {
+        if (request == null || request.userId() == null || request.userId().isBlank()
+                || request.answer() == null || request.answer().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        submitAnswerUseCase.submit(request.userId(), request.answer());
+        return ResponseEntity.ok(learningStateMapper.toState(request.userId()));
+    }
+
+    @Operation(summary = "Continue learning", description = "Advances flow after learning card (LEARNING_CARD -> PRACTICE/QUICK_CHECK/RETRY).")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Updated learning state",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LearningStateResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload")
+    })
+    @PostMapping("/continue")
+    public ResponseEntity<LearningStateResponse> continueLearning(@RequestBody ContinueRequest request) {
+        if (request == null || request.userId() == null || request.userId().isBlank()) {
+            return ResponseEntity.badRequest().build();
         }
 
-        Question question = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
-        LearningCycle cycle = session.currentCycle();
+        LearningSessionStore.LearningSession session = learningSessionService.getSession(request.userId()).orElse(null);
+        if (session == null) {
+            return ResponseEntity.ok(learningStateMapper.inactiveState(request.userId()));
+        }
 
-        LearningStateResponse.TopicView topic = question != null
-                && question.concept() != null
-                && question.concept().topic() != null
-                ? new LearningStateResponse.TopicView(
-                        question.concept().topic().id(),
-                        question.concept().topic().name()
-                )
-                : null;
+        if (session.phase() == LearningPhase.LEARNING_CARD) {
+            LearningCycle cycle = session.currentCycle();
+            List<?> practiceItems = cycle == null || cycle.practiceItems() == null ? List.of() : cycle.practiceItems();
+            if (!practiceItems.isEmpty()) {
+                learningSessionService.setPracticeIndex(request.userId(), 0);
+                learningSessionService.setPhase(request.userId(), LearningPhase.PRACTICE);
+            } else if (cycle != null
+                    && cycle.quickCheck() != null
+                    && cycle.quickCheck().question() != null
+                    && !cycle.quickCheck().question().isBlank()) {
+                learningSessionService.setPhase(request.userId(), LearningPhase.QUICK_CHECK);
+            } else {
+                learningSessionService.setPhase(request.userId(), LearningPhase.RETRY);
+            }
+        }
 
-        LearningStateResponse.ConceptView concept = question != null && question.concept() != null
-                ? new LearningStateResponse.ConceptView(
-                        question.concept().id(),
-                        question.concept().name()
-                )
-                : null;
-
-        LearningStateResponse.MicroConceptView microConcept = question != null && question.microConcept() != null
-                ? new LearningStateResponse.MicroConceptView(
-                        question.microConcept().id(),
-                        question.microConcept().name(),
-                        question.microConcept().sortOrder()
-                )
-                : null;
-
-        Integer conceptOrder = concept == null || concept.id() == null ? null : getQuestionUseCase.conceptOrder(concept.id());
-        Integer totalConcepts = getQuestionUseCase.totalConcepts();
-        Integer microOrder = concept == null || concept.id() == null || microConcept == null || microConcept.id() == null
-                ? null
-                : getQuestionUseCase.microConceptOrder(concept.id(), microConcept.id());
-        Integer totalMicroConcepts = concept == null || concept.id() == null
-                ? null
-                : getQuestionUseCase.totalMicroConcepts(concept.id());
-
-        LearningStateResponse.ProgressView progress = new LearningStateResponse.ProgressView(
-                conceptOrder,
-                totalConcepts,
-                microOrder,
-                totalMicroConcepts,
-                session.answeredCount()
-        );
-
-        LearningStateResponse.QuestionView questionView = question == null
-                ? null
-                : new LearningStateResponse.QuestionView(
-                        question.id(),
-                        question.text(),
-                        question.difficulty(),
-                        question.questionType()
-                );
-
-        LearningStateResponse.LearningCardView learningCard = cycle == null || cycle.learningCard() == null
-                ? null
-                : new LearningStateResponse.LearningCardView(
-                        cycle.learningCard().title(),
-                        cycle.learningCard().explanation()
-                );
-
-        LearningStateResponse.QuickCheckView quickCheck = cycle == null || cycle.quickCheck() == null
-                ? null
-                : new LearningStateResponse.QuickCheckView(
-                        cycle.quickCheck().question(),
-                        cycle.quickCheck().expectedAnswer()
-                );
-
-        List<PracticeItem> practiceItems = cycle == null || cycle.practiceItems() == null ? List.of() : cycle.practiceItems();
-        List<LearningStateResponse.PracticeItemView> practiceItemViews = practiceItems.stream()
-                .map(item -> new LearningStateResponse.PracticeItemView(
-                        item.type(),
-                        item.question(),
-                        item.options() == null ? List.of() : item.options()
-                ))
-                .toList();
-
-        Integer currentPracticeIndex = practiceItems.isEmpty()
-                ? null
-                : Math.min(Math.max(0, session.currentPracticeIndex()) + 1, practiceItems.size());
-        LearningStateResponse.PracticeView practice = new LearningStateResponse.PracticeView(
-                currentPracticeIndex,
-                practiceItems.size(),
-                practiceItemViews
-        );
-
-        LearningStateResponse.RetryView retry = cycle == null
-                ? null
-                : new LearningStateResponse.RetryView(
-                        cycle.retryQuestion(),
-                        cycle.retryRubric() == null ? List.of() : cycle.retryRubric()
-                );
-
-        return ResponseEntity.ok(new LearningStateResponse(
-                true,
-                userId,
-                session.phase(),
-                topic,
-                concept,
-                microConcept,
-                progress,
-                questionView,
-                learningCard,
-                quickCheck,
-                practice,
-                retry
-        ));
+        return ResponseEntity.ok(learningStateMapper.toState(request.userId()));
     }
 
-    private LearningStateResponse inactiveState(String userId) {
-        return new LearningStateResponse(
-                false,
-                userId,
-                LearningPhase.COMPLETED,
-                null,
-                null,
-                null,
-                new LearningStateResponse.ProgressView(null, getQuestionUseCase.totalConcepts(), null, null, 0),
-                null,
-                null,
-                null,
-                new LearningStateResponse.PracticeView(null, 0, List.of()),
-                null
-        );
-    }
+    public record AnswerRequest(
+            String userId,
+            String answer
+    ) {}
+
+    public record ContinueRequest(
+            String userId
+    ) {}
 }

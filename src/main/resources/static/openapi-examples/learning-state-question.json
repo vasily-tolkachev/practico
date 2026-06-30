@@ -1,0 +1,14 @@
+{
+  "active": true,
+  "userId": "123",
+  "phase": "QUESTION",
+  "topic": { "id": 10, "name": "Космос" },
+  "concept": { "id": 104, "name": "Звёзды" },
+  "microConcept": { "id": 1019, "name": "Что такое звезда", "sortOrder": 1 },
+  "progress": { "conceptOrder": 4, "totalConcepts": 9, "microConceptOrder": 1, "totalMicroConcepts": 6, "answeredCount": 0 },
+  "question": { "id": 2019, "text": "Что отличает звезду от планеты?", "difficulty": "EASY", "questionType": "COMPARISON" },
+  "learningCard": null,
+  "quickCheck": null,
+  "practice": { "currentIndex": null, "totalItems": 0, "items": [] },
+  "retry": null
+}
