@@ -1,6 +1,7 @@
 package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
+import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
@@ -20,6 +21,7 @@ import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
+import com.myproject.practico.application.service.GetCurrentProgramService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
@@ -42,6 +44,15 @@ public class ApplicationWiringConfig {
     @Bean
     public GetQuestionUseCase getQuestionUseCase(QuestionPersistencePort questionPersistencePort) {
         return new GetQuestionService(questionPersistencePort);
+    }
+
+    @Bean
+    public GetCurrentProgramUseCase getCurrentProgramUseCase(
+            QuestionPersistencePort questionPersistencePort,
+            LearningSessionService learningSessionService,
+            GetQuestionUseCase getQuestionUseCase
+    ) {
+        return new GetCurrentProgramService(questionPersistencePort, learningSessionService, getQuestionUseCase);
     }
 
     @Bean
