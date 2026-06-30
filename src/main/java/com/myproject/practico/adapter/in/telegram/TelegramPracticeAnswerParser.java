@@ -6,23 +6,13 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.myproject.practico.application.service.PracticeType.MULTIPLE_CHOICE;
-import static com.myproject.practico.application.service.PracticeType.TRUE_FALSE;
-
-import com.myproject.practico.application.service.PracticeType;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TelegramPracticeAnswerParser {
 
-    public PracticeAnswer parse(String text, PracticeType practiceType) {
-        if (practiceType == TRUE_FALSE) {
-            return new PracticeAnswer(parseBoolean(text), Set.of());
-        }
-        if (practiceType == MULTIPLE_CHOICE) {
-            return new PracticeAnswer(null, parseSelectedOptions(text));
-        }
-        return new PracticeAnswer(null, Set.of());
+    public PracticeAnswer parse(String text) {
+        return new PracticeAnswer(parseBoolean(text), parseSelectedOptions(text));
     }
 
     private Boolean parseBoolean(String value) {

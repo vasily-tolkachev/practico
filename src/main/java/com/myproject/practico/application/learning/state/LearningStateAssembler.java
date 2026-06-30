@@ -134,13 +134,8 @@ public class LearningStateAssembler {
     }
 
     private List<AvailableAction> actionsFor(LearningPhase phase) {
-        return switch (phase) {
-            case QUESTION -> List.of(new AvailableAction(ActionType.SUBMIT_ANSWER, true));
-            case LEARNING_CARD -> List.of(new AvailableAction(ActionType.CONTINUE_LEARNING, true));
-            case PRACTICE -> List.of(new AvailableAction(ActionType.SUBMIT_PRACTICE, true));
-            case QUICK_CHECK -> List.of(new AvailableAction(ActionType.SUBMIT_QUICK_CHECK, true));
-            case RETRY -> List.of(new AvailableAction(ActionType.SUBMIT_RETRY, true));
-            case COMPLETED -> List.of(new AvailableAction(ActionType.START_LEARNING, true));
-        };
+        return LearningActionRules.allowedForPhase(phase).stream()
+                .map(type -> new AvailableAction(type, true))
+                .toList();
     }
 }

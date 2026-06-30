@@ -7,6 +7,7 @@ import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
 import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
 import com.myproject.practico.application.port.in.SubmitRetryUseCase;
+import com.myproject.practico.application.port.in.SubmitLearningInputUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
@@ -32,6 +33,7 @@ import com.myproject.practico.application.service.PracticeService;
 import com.myproject.practico.application.service.SubmitPracticeService;
 import com.myproject.practico.application.service.SubmitQuickCheckService;
 import com.myproject.practico.application.service.SubmitRetryService;
+import com.myproject.practico.application.service.SubmitLearningInputService;
 import com.myproject.practico.application.service.UserConceptProgressService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -176,5 +178,26 @@ public class ApplicationWiringConfig {
             SubmitAnswerUseCase submitAnswerUseCase
     ) {
         return new SubmitRetryService(submitAnswerUseCase);
+    }
+
+    @Bean
+    public SubmitLearningInputUseCase submitLearningInputUseCase(
+            LearningSessionService learningSessionService,
+            SubmitAnswerUseCase submitAnswerUseCase,
+            ContinueLearningUseCase continueLearningUseCase,
+            SubmitPracticeUseCase submitPracticeUseCase,
+            SubmitQuickCheckUseCase submitQuickCheckUseCase,
+            SubmitRetryUseCase submitRetryUseCase,
+            GetLearningStateUseCase getLearningStateUseCase
+    ) {
+        return new SubmitLearningInputService(
+                learningSessionService,
+                submitAnswerUseCase,
+                continueLearningUseCase,
+                submitPracticeUseCase,
+                submitQuickCheckUseCase,
+                submitRetryUseCase,
+                getLearningStateUseCase
+        );
     }
 }
