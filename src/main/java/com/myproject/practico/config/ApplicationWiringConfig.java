@@ -2,14 +2,15 @@ package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
-import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
+import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
+import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
+import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
+import com.myproject.practico.application.port.in.SubmitRetryUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
-import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
-import com.myproject.practico.application.port.out.MessengerPort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
@@ -19,15 +20,18 @@ import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
-import com.myproject.practico.application.service.HandleIncomingMessageService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.SubmitAnswerService;
+import com.myproject.practico.application.service.ContinueLearningService;
 import com.myproject.practico.application.service.LearningSessionStore;
 import com.myproject.practico.application.service.QuickCheckService;
 import com.myproject.practico.application.service.PracticeService;
+import com.myproject.practico.application.service.SubmitPracticeService;
+import com.myproject.practico.application.service.SubmitQuickCheckService;
+import com.myproject.practico.application.service.SubmitRetryService;
 import com.myproject.practico.application.service.UserConceptProgressService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -110,9 +114,10 @@ public class ApplicationWiringConfig {
     @Bean
     public StartLearningUseCase startLearningUseCase(
             GetQuestionUseCase getQuestionUseCase,
-            LearningSessionService learningSessionService
+            LearningSessionService learningSessionService,
+            LearningStateAssembler learningStateAssembler
     ) {
-        return new StartLearningService(getQuestionUseCase, learningSessionService);
+        return new StartLearningService(getQuestionUseCase, learningSessionService, learningStateAssembler);
     }
 
     @Bean
@@ -121,35 +126,55 @@ public class ApplicationWiringConfig {
             GetQuestionUseCase getQuestionUseCase,
             LearningEngine learningEngine,
             UserPersistencePort userPersistencePort,
-            AnswerPersistencePort answerPersistencePort
+            AnswerPersistencePort answerPersistencePort,
+            LearningStateAssembler learningStateAssembler
     ) {
         return new SubmitAnswerService(
                 learningSessionService,
                 getQuestionUseCase,
                 learningEngine,
                 userPersistencePort,
-                answerPersistencePort
+                answerPersistencePort,
+                learningStateAssembler
         );
     }
 
     @Bean
-    public HandleIncomingMessageUseCase handleIncomingMessageUseCase(
-            CommandInterpreterPort commandInterpreterPort,
-            SubmitAnswerUseCase submitAnswerUseCase,
+    public ContinueLearningUseCase continueLearningUseCase(
+            LearningSessionService learningSessionService,
+            LearningStateAssembler learningStateAssembler
+    ) {
+        return new ContinueLearningService(learningSessionService, learningStateAssembler);
+    }
+
+    @Bean
+    public SubmitPracticeUseCase submitPracticeUseCase(
+            LearningSessionService learningSessionService,
+            PracticeService practiceService,
             GetQuestionUseCase getQuestionUseCase,
+            LearningStateAssembler learningStateAssembler
+    ) {
+        return new SubmitPracticeService(
+                learningSessionService,
+                practiceService,
+                getQuestionUseCase,
+                learningStateAssembler
+        );
+    }
+
+    @Bean
+    public SubmitQuickCheckUseCase submitQuickCheckUseCase(
             LearningSessionService learningSessionService,
             QuickCheckService quickCheckService,
-            PracticeService practiceService,
-            MessengerPort messengerPort
+            LearningStateAssembler learningStateAssembler
     ) {
-        return new HandleIncomingMessageService(
-                commandInterpreterPort,
-                submitAnswerUseCase,
-                getQuestionUseCase,
-                learningSessionService,
-                quickCheckService,
-                practiceService,
-                messengerPort
-        );
+        return new SubmitQuickCheckService(learningSessionService, quickCheckService, learningStateAssembler);
+    }
+
+    @Bean
+    public SubmitRetryUseCase submitRetryUseCase(
+            SubmitAnswerUseCase submitAnswerUseCase
+    ) {
+        return new SubmitRetryService(submitAnswerUseCase);
     }
 }

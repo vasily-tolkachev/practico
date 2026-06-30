@@ -1,13 +1,14 @@
 package com.myproject.practico.adapter.in.rest;
 
-import com.myproject.practico.adapter.in.rest.dto.LearningStateResponse;
 import com.myproject.practico.application.learning.state.LearningState;
+import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
+import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
-import com.myproject.practico.application.service.LearningCycle;
-import com.myproject.practico.application.service.LearningPhase;
-import com.myproject.practico.application.service.LearningSessionService;
-import com.myproject.practico.application.service.LearningSessionStore;
+import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
+import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
+import com.myproject.practico.application.port.in.SubmitRetryUseCase;
+import com.myproject.practico.application.service.PracticeAnswer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -22,30 +23,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/learning")
 public class LearningStateController {
 
-    private final LearningSessionService learningSessionService;
-    private final SubmitAnswerUseCase submitAnswerUseCase;
-    private final LearningStateMapper learningStateMapper;
     private final GetLearningStateUseCase getLearningStateUseCase;
+    private final StartLearningUseCase startLearningUseCase;
+    private final SubmitAnswerUseCase submitAnswerUseCase;
+    private final ContinueLearningUseCase continueLearningUseCase;
+    private final SubmitPracticeUseCase submitPracticeUseCase;
+    private final SubmitQuickCheckUseCase submitQuickCheckUseCase;
+    private final SubmitRetryUseCase submitRetryUseCase;
 
     public LearningStateController(
-            LearningSessionService learningSessionService,
+            GetLearningStateUseCase getLearningStateUseCase,
+            StartLearningUseCase startLearningUseCase,
             SubmitAnswerUseCase submitAnswerUseCase,
-            LearningStateMapper learningStateMapper,
-            GetLearningStateUseCase getLearningStateUseCase
+            ContinueLearningUseCase continueLearningUseCase,
+            SubmitPracticeUseCase submitPracticeUseCase,
+            SubmitQuickCheckUseCase submitQuickCheckUseCase,
+            SubmitRetryUseCase submitRetryUseCase
     ) {
-        this.learningSessionService = learningSessionService;
-        this.submitAnswerUseCase = submitAnswerUseCase;
-        this.learningStateMapper = learningStateMapper;
         this.getLearningStateUseCase = getLearningStateUseCase;
+        this.startLearningUseCase = startLearningUseCase;
+        this.submitAnswerUseCase = submitAnswerUseCase;
+        this.continueLearningUseCase = continueLearningUseCase;
+        this.submitPracticeUseCase = submitPracticeUseCase;
+        this.submitQuickCheckUseCase = submitQuickCheckUseCase;
+        this.submitRetryUseCase = submitRetryUseCase;
     }
 
-    @Operation(summary = "Current learning state", description = "Returns LearningState v1 for the user.")
+    @Operation(summary = "Current learning state", description = "Returns canonical LearningState.")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -66,76 +76,78 @@ public class LearningStateController {
     })
     @GetMapping("/state")
     public ResponseEntity<LearningState> state(@RequestParam String userId) {
-        if (userId == null || userId.isBlank()) {
+        if (isBlank(userId)) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(getLearningStateUseCase.getState(userId));
     }
 
-    @Operation(summary = "Submit answer", description = "Accepts user answer and returns updated LearningState v1.")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Updated learning state",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LearningStateResponse.class))
-            ),
-            @ApiResponse(responseCode = "400", description = "Invalid request payload")
-    })
-    @PostMapping("/answer")
-    public ResponseEntity<LearningStateResponse> answer(@RequestBody AnswerRequest request) {
-        if (request == null || request.userId() == null || request.userId().isBlank()
-                || request.answer() == null || request.answer().isBlank()) {
+    @PostMapping("/start")
+    public ResponseEntity<LearningState> start(@RequestBody UserRequest request) {
+        if (request == null || isBlank(request.userId())) {
             return ResponseEntity.badRequest().build();
         }
-        submitAnswerUseCase.submit(request.userId(), request.answer());
-        return ResponseEntity.ok(learningStateMapper.toState(request.userId()));
+        return ResponseEntity.ok(startLearningUseCase.start(request.userId()));
     }
 
-    @Operation(summary = "Continue learning", description = "Advances flow after learning card (LEARNING_CARD -> PRACTICE/QUICK_CHECK/RETRY).")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Updated learning state",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LearningStateResponse.class))
-            ),
-            @ApiResponse(responseCode = "400", description = "Invalid request payload")
-    })
-    @PostMapping("/continue")
-    public ResponseEntity<LearningStateResponse> continueLearning(@RequestBody ContinueRequest request) {
-        if (request == null || request.userId() == null || request.userId().isBlank()) {
+    @PostMapping("/answer")
+    public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request) {
+        if (request == null || isBlank(request.userId()) || isBlank(request.answer())) {
             return ResponseEntity.badRequest().build();
         }
+        return ResponseEntity.ok(submitAnswerUseCase.submit(request.userId(), request.answer()));
+    }
 
-        LearningSessionStore.LearningSession session = learningSessionService.getSession(request.userId()).orElse(null);
-        if (session == null) {
-            return ResponseEntity.ok(learningStateMapper.inactiveState(request.userId()));
+    @PostMapping("/continue")
+    public ResponseEntity<LearningState> continueLearning(@RequestBody UserRequest request) {
+        if (request == null || isBlank(request.userId())) {
+            return ResponseEntity.badRequest().build();
         }
+        return ResponseEntity.ok(continueLearningUseCase.continueLearning(request.userId()));
+    }
 
-        if (session.phase() == LearningPhase.LEARNING_CARD) {
-            LearningCycle cycle = session.currentCycle();
-            List<?> practiceItems = cycle == null || cycle.practiceItems() == null ? List.of() : cycle.practiceItems();
-            if (!practiceItems.isEmpty()) {
-                learningSessionService.setPracticeIndex(request.userId(), 0);
-                learningSessionService.setPhase(request.userId(), LearningPhase.PRACTICE);
-            } else if (cycle != null
-                    && cycle.quickCheck() != null
-                    && cycle.quickCheck().question() != null
-                    && !cycle.quickCheck().question().isBlank()) {
-                learningSessionService.setPhase(request.userId(), LearningPhase.QUICK_CHECK);
-            } else {
-                learningSessionService.setPhase(request.userId(), LearningPhase.RETRY);
-            }
+    @PostMapping("/practice")
+    public ResponseEntity<LearningState> practice(@RequestBody PracticeRequest request) {
+        if (request == null || isBlank(request.userId())) {
+            return ResponseEntity.badRequest().build();
         }
+        PracticeAnswer answer = new PracticeAnswer(request.booleanAnswer(), request.selectedOptions());
+        return ResponseEntity.ok(submitPracticeUseCase.submitPractice(request.userId(), answer));
+    }
 
-        return ResponseEntity.ok(learningStateMapper.toState(request.userId()));
+    @PostMapping("/quick-check")
+    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request) {
+        if (request == null || isBlank(request.userId()) || request.answer() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(submitQuickCheckUseCase.submitQuickCheck(request.userId(), request.answer()));
+    }
+
+    @PostMapping("/retry")
+    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request) {
+        if (request == null || isBlank(request.userId()) || isBlank(request.answer())) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(submitRetryUseCase.submitRetry(request.userId(), request.answer()));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    public record UserRequest(String userId) {
     }
 
     public record AnswerRequest(
             String userId,
             String answer
-    ) {}
+    ) {
+    }
 
-    public record ContinueRequest(
-            String userId
-    ) {}
+    public record PracticeRequest(
+            String userId,
+            Boolean booleanAnswer,
+            Set<Integer> selectedOptions
+    ) {
+    }
 }

@@ -2,6 +2,6 @@ package com.myproject.practico.application.service;
 
 public record PracticeCheckResult(
         boolean correct,
-        String feedback
+        PracticeFeedbackCode feedbackCode
 ) {
 }

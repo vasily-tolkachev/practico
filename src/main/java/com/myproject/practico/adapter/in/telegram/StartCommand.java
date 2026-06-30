@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 public class StartCommand implements TelegramCommand {
 
     private final StartLearningUseCase startLearningUseCase;
+    private final TelegramLearningStateRenderer renderer;
 
     @Override
     public boolean supports(String text) {
@@ -17,6 +18,6 @@ public class StartCommand implements TelegramCommand {
 
     @Override
     public String handle(String userId, String text) {
-        return startLearningUseCase.start(userId);
+        return renderer.render(startLearningUseCase.start(userId));
     }
 }

@@ -13,12 +13,16 @@ public class QuickCheckService {
 
     public QuickCheckResult check(String userAnswer, QuickCheck quickCheck) {
         if (quickCheck == null || quickCheck.question() == null || quickCheck.question().isBlank()) {
-            return new QuickCheckResult(false, "Мини-проверка недоступна. Продолжайте следующим ответом.");
+            return new QuickCheckResult(false, QuickCheckFeedbackCode.UNAVAILABLE);
         }
-        return quickCheckPort.evaluate(new QuickCheckRequest(
+        QuickCheckResult result = quickCheckPort.evaluate(new QuickCheckRequest(
                 quickCheck.question(),
                 quickCheck.expectedAnswer(),
                 userAnswer
         ));
+        if (result.correct()) {
+            return new QuickCheckResult(true, QuickCheckFeedbackCode.CORRECT);
+        }
+        return new QuickCheckResult(false, QuickCheckFeedbackCode.INCORRECT);
     }
 }
