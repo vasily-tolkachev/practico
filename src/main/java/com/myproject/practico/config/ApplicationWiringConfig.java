@@ -1,9 +1,11 @@
 package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
+import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.HandleIncomingMessageUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
+import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.CommandInterpreterPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
@@ -16,6 +18,7 @@ import com.myproject.practico.application.service.EvaluationService;
 import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
+import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.HandleIncomingMessageService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
@@ -38,6 +41,11 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public LearningStateAssembler learningStateAssembler(GetQuestionUseCase getQuestionUseCase) {
+        return new LearningStateAssembler(getQuestionUseCase);
+    }
+
+    @Bean
     public LearningSessionStore learningSessionStore() {
         return new LearningSessionStore();
     }
@@ -50,6 +58,14 @@ public class ApplicationWiringConfig {
     @Bean
     public LearningSessionService learningSessionService(LearningSessionStore learningSessionStore) {
         return new LearningSessionService(learningSessionStore);
+    }
+
+    @Bean
+    public GetLearningStateUseCase getLearningStateUseCase(
+            LearningSessionService learningSessionService,
+            LearningStateAssembler learningStateAssembler
+    ) {
+        return new GetLearningStateService(learningSessionService, learningStateAssembler);
     }
 
     @Bean

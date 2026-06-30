@@ -1,6 +1,8 @@
 package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.adapter.in.rest.dto.LearningStateResponse;
+import com.myproject.practico.application.learning.state.LearningState;
+import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.service.LearningCycle;
 import com.myproject.practico.application.service.LearningPhase;
@@ -29,15 +31,18 @@ public class LearningStateController {
     private final LearningSessionService learningSessionService;
     private final SubmitAnswerUseCase submitAnswerUseCase;
     private final LearningStateMapper learningStateMapper;
+    private final GetLearningStateUseCase getLearningStateUseCase;
 
     public LearningStateController(
             LearningSessionService learningSessionService,
             SubmitAnswerUseCase submitAnswerUseCase,
-            LearningStateMapper learningStateMapper
+            LearningStateMapper learningStateMapper,
+            GetLearningStateUseCase getLearningStateUseCase
     ) {
         this.learningSessionService = learningSessionService;
         this.submitAnswerUseCase = submitAnswerUseCase;
         this.learningStateMapper = learningStateMapper;
+        this.getLearningStateUseCase = getLearningStateUseCase;
     }
 
     @Operation(summary = "Current learning state", description = "Returns LearningState v1 for the user.")
@@ -47,7 +52,7 @@ public class LearningStateController {
                     description = "Learning state payload",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = LearningStateResponse.class),
+                            schema = @Schema(implementation = LearningState.class),
                             examples = {
                                     @ExampleObject(name = "QUESTION", externalValue = "/openapi-examples/learning-state-question.json"),
                                     @ExampleObject(name = "LEARNING_CARD", externalValue = "/openapi-examples/learning-state-learning-card.json"),
@@ -60,11 +65,11 @@ public class LearningStateController {
             @ApiResponse(responseCode = "400", description = "Invalid userId")
     })
     @GetMapping("/state")
-    public ResponseEntity<LearningStateResponse> state(@RequestParam String userId) {
+    public ResponseEntity<LearningState> state(@RequestParam String userId) {
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(learningStateMapper.toState(userId));
+        return ResponseEntity.ok(getLearningStateUseCase.getState(userId));
     }
 
     @Operation(summary = "Submit answer", description = "Accepts user answer and returns updated LearningState v1.")
