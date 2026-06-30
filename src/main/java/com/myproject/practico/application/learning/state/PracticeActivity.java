@@ -14,6 +14,11 @@ public record PracticeActivity(
         items = items == null ? List.of() : List.copyOf(items);
     }
 
+    @Override
+    public ActivityType type() {
+        return ActivityType.PRACTICE;
+    }
+
     public record PracticeItemView(
             PracticeType type,
             String question,

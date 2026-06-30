@@ -6,4 +6,8 @@ public record QuestionActivity(
         String difficulty,
         String questionType
 ) implements LearningActivity {
+    @Override
+    public ActivityType type() {
+        return ActivityType.QUESTION;
+    }
 }

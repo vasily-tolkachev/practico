@@ -9,4 +9,9 @@ public record RetryActivity(
     public RetryActivity {
         rubric = rubric == null ? List.of() : List.copyOf(rubric);
     }
+
+    @Override
+    public ActivityType type() {
+        return ActivityType.RETRY;
+    }
 }
