@@ -9,6 +9,12 @@ import java.util.Optional;
 import java.util.Set;
 
 public class LearningSessionService {
+    private static final int ANSWERS_FOR_MEDIUM = 2;
+    private static final int ANSWERS_FOR_HARD = 3;
+    private static final double PROMOTION_AVERAGE_THRESHOLD = 8.0;
+    private static final int EASY_INDEX = 0;
+    private static final int MEDIUM_INDEX = 1;
+    private static final int HARD_INDEX = 2;
 
     private static final List<Difficulty> DIFFICULTY_LEVELS = List.of(
             Difficulty.EASY,
@@ -60,11 +66,15 @@ public class LearningSessionService {
 
     public Difficulty nextDifficulty(LearningSessionStore.LearningSession session, int latestScore) {
         int answeredAfterCurrent = session.answeredCount() + 1;
-        int baseLevel = answeredAfterCurrent >= 3 ? 2 : answeredAfterCurrent >= 2 ? 1 : 0;
+        int baseLevel = answeredAfterCurrent >= ANSWERS_FOR_HARD
+                ? HARD_INDEX
+                : answeredAfterCurrent >= ANSWERS_FOR_MEDIUM
+                ? MEDIUM_INDEX
+                : EASY_INDEX;
 
         double average = averageWithLatest(session, latestScore);
-        if (average > 8.0) {
-            baseLevel = Math.min(2, baseLevel + 1);
+        if (average > PROMOTION_AVERAGE_THRESHOLD) {
+            baseLevel = Math.min(HARD_INDEX, baseLevel + 1);
         }
 
         return DIFFICULTY_LEVELS.get(baseLevel);
@@ -88,7 +98,7 @@ public class LearningSessionService {
     private double averageWithLatest(LearningSessionStore.LearningSession session, int latestScore) {
         List<Integer> scores = new ArrayList<>(session.lastScores());
         scores.add(latestScore);
-        if (scores.size() > 3) {
+        if (scores.size() > ANSWERS_FOR_HARD) {
             scores.remove(0);
         }
         return scores.stream().mapToInt(Integer::intValue).average().orElse(0.0);

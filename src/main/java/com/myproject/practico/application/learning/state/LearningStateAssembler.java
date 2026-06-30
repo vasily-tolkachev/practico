@@ -11,8 +11,6 @@ import java.util.List;
 
 public class LearningStateAssembler {
 
-    private static final int SCHEMA_VERSION = 1;
-
     private final GetQuestionUseCase getQuestionUseCase;
 
     public LearningStateAssembler(GetQuestionUseCase getQuestionUseCase) {
@@ -120,7 +118,12 @@ public class LearningStateAssembler {
 
     private PracticeActivity toPracticeActivity(LearningCycle cycle, int currentPracticeIndex) {
         List<PracticeItem> items = cycle == null || cycle.practiceItems() == null ? List.of() : cycle.practiceItems();
-        Integer currentItem = items.isEmpty() ? null : Math.min(Math.max(0, currentPracticeIndex) + 1, items.size());
+        Integer currentItem = items.isEmpty()
+                ? null
+                : Math.min(
+                Math.max(0, currentPracticeIndex) + 1,
+                items.size()
+        );
 
         List<PracticeActivity.PracticeItemView> mappedItems = items.stream()
                 .map(item -> new PracticeActivity.PracticeItemView(
@@ -138,4 +141,6 @@ public class LearningStateAssembler {
                 .map(type -> new AvailableAction(type, true))
                 .toList();
     }
+
+    private static final int SCHEMA_VERSION = 1;
 }

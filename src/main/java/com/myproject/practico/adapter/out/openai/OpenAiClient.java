@@ -31,6 +31,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int SCORE_MIN = 0;
+    private static final int SCORE_MAX = 10;
+    private static final int ANSWERED_SCORE_THRESHOLD = 6;
 
     private static final String PROMPT = """
             Ты технический наставник для начинающих.
@@ -326,7 +329,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private int parseScore(String content) {
         Matcher matcher = SCORE_PATTERN.matcher(content);
         if (!matcher.find()) {
-            return 0;
+            return SCORE_MIN;
         }
         return clampScore(Integer.parseInt(matcher.group(1)));
     }
@@ -345,7 +348,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         if (matcher.find()) {
             return Boolean.parseBoolean(matcher.group(1).toLowerCase());
         }
-        return score >= 6;
+        return score >= ANSWERED_SCORE_THRESHOLD;
     }
 
     private LearningCard parseLearningCard(String content, boolean answeredQuestion, String evaluation) {
@@ -540,7 +543,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     }
 
     private int clampScore(int rawScore) {
-        return Math.max(0, Math.min(10, rawScore));
+        return Math.max(SCORE_MIN, Math.min(SCORE_MAX, rawScore));
     }
 
     private QuickCheckResult quickCheckFallback(String feedback) {
@@ -570,7 +573,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
     private EvaluationResult fallback(String evaluation) {
         return new EvaluationResult(
-                0,
+                SCORE_MIN,
                 false,
                 evaluation,
                 new LearningCard("Ключевая идея", "Просмотрите концепт и попробуйте снова."),

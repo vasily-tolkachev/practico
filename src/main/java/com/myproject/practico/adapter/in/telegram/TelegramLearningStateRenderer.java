@@ -68,7 +68,15 @@ public class TelegramLearningStateRenderer {
             return sb.toString();
         }
 
-        int index = current == null ? 0 : Math.max(0, Math.min(current - 1, practiceActivity.items().size() - 1));
+        int index = current == null
+                ? 0
+                : Math.max(
+                0,
+                Math.min(
+                        current - 1,
+                        practiceActivity.items().size() - 1
+                )
+        );
         PracticeActivity.PracticeItemView item = practiceActivity.items().get(index);
         sb.append(nullToEmpty(item.question()));
         if (item.type() != null && item.type().name().equals("TRUE_FALSE")) {

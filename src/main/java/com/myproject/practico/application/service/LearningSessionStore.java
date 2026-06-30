@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LearningSessionStore {
-
     private static final int MAX_LAST_SCORES = 3;
     private static final int MAX_ANSWERED_IDS = 100;
     private static final int MAX_MASTERED_MICRO_CONCEPT_IDS = 200;

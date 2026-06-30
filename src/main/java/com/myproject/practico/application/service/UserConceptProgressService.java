@@ -7,6 +7,8 @@ import com.myproject.practico.domain.UserConceptProgress;
 import java.time.Instant;
 
 public class UserConceptProgressService {
+    private static final int MASTERY_THRESHOLD = 8;
+    private static final int IN_PROGRESS_MIN = 5;
 
     private final UserConceptProgressPersistencePort userConceptProgressPersistencePort;
 
@@ -59,11 +61,11 @@ public class UserConceptProgressService {
     }
 
     private boolean isCorrect(int score) {
-        return score >= 8;
+        return score >= MASTERY_THRESHOLD;
     }
 
     private ProgressStatus resolveStatus(int score) {
-        if (score < 5) {
+        if (score < IN_PROGRESS_MIN) {
             return ProgressStatus.LEARNING;
         }
         return ProgressStatus.IN_PROGRESS;
