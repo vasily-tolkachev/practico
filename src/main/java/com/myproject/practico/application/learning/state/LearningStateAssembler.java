@@ -48,7 +48,7 @@ public class LearningStateAssembler {
                 LearningPhase.COMPLETED,
                 new LearningContext(null, null, null, null, null, null),
                 new ProgressSnapshot(null, getQuestionUseCase.totalConcepts(), null, null, 0),
-                new CompletedActivity("inactive"),
+                new CompletedActivity(ActivityType.COMPLETED, "inactive"),
                 List.of(new AvailableAction(ActionType.START_LEARNING, true))
         );
     }
@@ -95,24 +95,28 @@ public class LearningStateAssembler {
     ) {
         return switch (phase) {
             case QUESTION -> new QuestionActivity(
+                    ActivityType.QUESTION,
                     question == null ? null : question.id(),
                     question == null ? null : question.text(),
                     question == null || question.difficulty() == null ? null : question.difficulty().name(),
                     question == null || question.questionType() == null ? null : question.questionType().name()
             );
             case LEARNING_CARD -> new LearningCardActivity(
+                    ActivityType.LEARNING_CARD,
                     cycle == null || cycle.learningCard() == null ? null : cycle.learningCard().title(),
                     cycle == null || cycle.learningCard() == null ? null : cycle.learningCard().explanation()
             );
             case PRACTICE -> toPracticeActivity(cycle, currentPracticeIndex);
             case QUICK_CHECK -> new QuickCheckActivity(
+                    ActivityType.QUICK_CHECK,
                     cycle == null || cycle.quickCheck() == null ? null : cycle.quickCheck().question()
             );
             case RETRY -> new RetryActivity(
+                    ActivityType.RETRY,
                     cycle == null ? null : cycle.retryQuestion(),
                     cycle == null || cycle.retryRubric() == null ? List.of() : cycle.retryRubric()
             );
-            case COMPLETED -> new CompletedActivity("completed");
+            case COMPLETED -> new CompletedActivity(ActivityType.COMPLETED, "completed");
         };
     }
 
@@ -133,7 +137,7 @@ public class LearningStateAssembler {
                 ))
                 .toList();
 
-        return new PracticeActivity(currentItem, items.size(), mappedItems);
+        return new PracticeActivity(ActivityType.PRACTICE, currentItem, items.size(), mappedItems);
     }
 
     private List<AvailableAction> actionsFor(LearningPhase phase) {

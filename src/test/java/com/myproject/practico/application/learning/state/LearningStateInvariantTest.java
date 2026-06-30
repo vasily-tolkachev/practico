@@ -19,7 +19,7 @@ class LearningStateInvariantTest {
                 LearningPhase.QUESTION,
                 new LearningContext(1L, "topic", 2L, "concept", 3L, "micro"),
                 new ProgressSnapshot(1, 3, 1, 6, 0),
-                new QuestionActivity(10L, "q", "EASY", "DEFINITION"),
+                new QuestionActivity(ActivityType.QUESTION, 10L, "q", "EASY", "DEFINITION"),
                 List.of(new AvailableAction(ActionType.SUBMIT_ANSWER, true))
         ));
     }
@@ -33,7 +33,7 @@ class LearningStateInvariantTest {
                 LearningPhase.PRACTICE,
                 new LearningContext(1L, "topic", 2L, "concept", 3L, "micro"),
                 new ProgressSnapshot(1, 3, 1, 6, 0),
-                new QuestionActivity(10L, "q", "EASY", "DEFINITION"),
+                new QuestionActivity(ActivityType.QUESTION, 10L, "q", "EASY", "DEFINITION"),
                 List.of(new AvailableAction(ActionType.SUBMIT_PRACTICE, true))
         ));
     }
@@ -47,7 +47,7 @@ class LearningStateInvariantTest {
                 LearningPhase.QUESTION,
                 new LearningContext(1L, "topic", 2L, "concept", 3L, "micro"),
                 new ProgressSnapshot(1, 3, 1, 6, 0),
-                new QuestionActivity(10L, "q", "EASY", "DEFINITION"),
+                new QuestionActivity(ActivityType.QUESTION, 10L, "q", "EASY", "DEFINITION"),
                 List.of(new AvailableAction(ActionType.CONTINUE_LEARNING, true))
         ));
     }
@@ -61,7 +61,7 @@ class LearningStateInvariantTest {
                 LearningPhase.QUESTION,
                 new LearningContext(null, null, null, null, 3L, "micro"),
                 new ProgressSnapshot(1, 3, 1, 6, 0),
-                new QuestionActivity(10L, "q", "EASY", "DEFINITION"),
+                new QuestionActivity(ActivityType.QUESTION, 10L, "q", "EASY", "DEFINITION"),
                 List.of(new AvailableAction(ActionType.SUBMIT_ANSWER, true))
         ));
     }

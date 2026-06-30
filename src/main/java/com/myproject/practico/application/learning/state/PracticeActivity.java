@@ -5,6 +5,7 @@ import com.myproject.practico.application.service.PracticeType;
 import java.util.List;
 
 public record PracticeActivity(
+        ActivityType type,
         Integer currentItem,
         Integer totalItems,
         List<PracticeItemView> items
@@ -13,12 +14,6 @@ public record PracticeActivity(
     public PracticeActivity {
         items = items == null ? List.of() : List.copyOf(items);
     }
-
-    @Override
-    public ActivityType type() {
-        return ActivityType.PRACTICE;
-    }
-
     public record PracticeItemView(
             PracticeType type,
             String question,
