@@ -30,6 +30,6 @@ public class TelegramCommandRouter implements CommandInterpreterPort {
     }
 
     private String fallback() {
-        return "Unknown command. Type /help";
+        return "Неизвестная команда. Введите /help";
     }
 }

@@ -7,6 +7,7 @@ public record PracticeItem(
         String question,
         List<String> options,
         List<Integer> correctOptions,
-        Boolean expectedBoolean
+        Boolean expectedBoolean,
+        Boolean ambiguousIndexing
 ) {
 }

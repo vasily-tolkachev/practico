@@ -35,17 +35,17 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
     @Override
     public String submit(String userId, String answer) {
         if (answer == null || answer.isBlank()) {
-            return "Please send a non-empty answer.";
+            return "Пожалуйста, отправьте непустой ответ.";
         }
 
         LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
         if (session == null) {
-            return "No active learning session. Send /start to begin.";
+            return "Нет активной учебной сессии. Отправьте /start, чтобы начать.";
         }
 
         Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
         if (currentQuestion == null) {
-            return "Current question was not found. Send /start to restart.";
+            return "Текущий вопрос не найден. Отправьте /start, чтобы начать заново.";
         }
 
         Instant now = Instant.now();
@@ -57,7 +57,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                     ? learningEngine.handleRetryAnswer(user.id(), currentQuestion, answer, session, now)
                     : learningEngine.handleQuestionAnswer(user.id(), currentQuestion, answer, session, now);
         } catch (IllegalStateException ex) {
-            return "Current question concept was not found. Send /start to restart.";
+            return "Концепт текущего вопроса не найден. Отправьте /start, чтобы начать заново.";
         }
 
         EvaluationResult evaluation = learningResult.evaluation();
@@ -82,6 +82,9 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                     evaluation.retryRubric(),
                     evaluation.retryQuestion()
             ));
+        } else if (learningResult.nextPhase() == LearningPhase.RETRY) {
+            // Keep existing cycle context (practice/retryQuestion/rubric) for the next retry attempt.
+            learningSessionService.setCurrentCycle(userId, session.currentCycle());
         } else {
             learningSessionService.setCurrentCycle(userId, null);
         }
@@ -91,30 +94,47 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             learningSessionService.setCurrentQuestion(userId, null, null);
         }
 
-        return buildFinalResponse(learningResult, currentQuestion);
+        LearningSessionStore.LearningSession updatedSession = learningSessionService.getSession(userId).orElse(session);
+        return buildFinalResponse(learningResult, currentQuestion, updatedSession);
     }
 
     private String buildFinalResponse(
             LearningResult learningResult,
-            Question currentQuestion
+            Question currentQuestion,
+            LearningSessionStore.LearningSession session
     ) {
         EvaluationResult evaluation = learningResult.evaluation();
         StringBuilder response = new StringBuilder();
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
-            response.append("Good start.");
+            response.append("Хорошее начало.");
+        } else if (learningResult.nextPhase() == LearningPhase.RETRY) {
+            response.append("Продолжаем.");
         } else {
-            response.append("Nice improvement.");
+            response.append("Отличное улучшение.");
         }
-        response.append("\n\nFeedback:\n").append(conciseFeedback(evaluation.evaluation()));
+        response.append("\n\nОбратная связь:\n").append(conciseFeedback(evaluation.evaluation()));
 
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
             if (evaluation.learningCard() != null) {
-                response.append("\n\nLearning card: ").append(evaluation.learningCard().title());
+                response.append("\n\nКарточка обучения: ").append(evaluation.learningCard().title());
                 response.append("\n").append(evaluation.learningCard().explanation());
             } else {
-                response.append("\n\nLearning card:\nReview the concept and try again.");
+                response.append("\n\nКарточка обучения:\nПросмотрите идею и попробуйте снова.");
             }
-            response.append("\n\nWhen you are ready, send any message (for example, \"ready\") to start practice.");
+            response.append("\n\nКогда будете готовы, отправьте любое сообщение (например, \"готово\"), чтобы начать практику.");
+            return response.toString();
+        }
+
+        if (learningResult.nextPhase() == LearningPhase.RETRY) {
+            String retryQuestion = session == null || session.currentCycle() == null
+                    ? null
+                    : session.currentCycle().retryQuestion();
+            if (retryQuestion == null || retryQuestion.isBlank()) {
+                retryQuestion = currentQuestion == null ? null : currentQuestion.text();
+            }
+            if (retryQuestion != null && !retryQuestion.isBlank()) {
+                response.append("\n\nПовторный вопрос:\n").append(retryQuestion);
+            }
             return response.toString();
         }
 
@@ -123,12 +143,12 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             int order = nextQuestion.concept() == null ? 0 : getQuestionUseCase.conceptOrder(nextQuestion.concept().id());
             int total = getQuestionUseCase.totalConcepts();
             if (order > 0 && total > 0) {
-                response.append("\n\nProgress: ").append(order).append(" / ").append(total);
+                response.append("\n\nПрогресс: ").append(order).append(" / ").append(total);
                 if (nextQuestion.microConcept() != null && nextQuestion.microConcept().id() != null && nextQuestion.concept() != null) {
                     int microOrder = getQuestionUseCase.microConceptOrder(nextQuestion.concept().id(), nextQuestion.microConcept().id());
                     int microTotal = getQuestionUseCase.totalMicroConcepts(nextQuestion.concept().id());
                     if (microOrder > 0 && microTotal > 0) {
-                        response.append(" | Micro ").append(microOrder).append(" / ").append(microTotal);
+                        response.append(" | Микро ").append(microOrder).append(" / ").append(microTotal);
                     }
                 }
             }
@@ -136,19 +156,19 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                 Long currentConceptId = currentQuestion == null || currentQuestion.concept() == null ? null : currentQuestion.concept().id();
                 Long nextConceptId = nextQuestion.concept().id();
                 if (currentConceptId != null && !currentConceptId.equals(nextConceptId)) {
-                    response.append("\n\nNext concept\n").append(nextQuestion.concept().name());
+                    response.append("\n\nСледующий концепт\n").append(nextQuestion.concept().name());
                 } else {
-                    response.append("\n\nConcept\n").append(nextQuestion.concept().name());
+                    response.append("\n\nКонцепт\n").append(nextQuestion.concept().name());
                 }
             }
-            response.append("\n\nQuestion\n").append(nextQuestion.text());
+            response.append("\n\nВопрос\n").append(nextQuestion.text());
         } else {
-            response.append("\n\nCourse completed.");
+            response.append("\n\nКурс завершён.");
             int total = getQuestionUseCase.totalConcepts();
             if (total > 0) {
-                response.append("\nYou completed ").append(total).append(" concepts.");
+                response.append("\nВы прошли ").append(total).append(" концептов.");
             }
-            response.append("\nSend /start to begin a new run.");
+            response.append("\nОтправьте /start, чтобы начать новый проход.");
         }
 
         return response.toString();
@@ -156,7 +176,7 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     private String conciseFeedback(String feedback) {
         if (feedback == null || feedback.isBlank()) {
-            return "Good work.";
+            return "Хорошая работа.";
         }
         String trimmed = feedback.trim();
         String[] sentences = trimmed.split("(?<=[.!?])\\s+");

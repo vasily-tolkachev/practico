@@ -118,7 +118,7 @@ public class DefaultLearningEngine implements LearningEngine {
 
         boolean quickCheckPassed = session.phase() == LearningPhase.RETRY;
         if (!retryMasteryPolicy.isMastered(evaluationResult, conceptProgress, quickCheckPassed)) {
-            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.LEARNING_CARD, null);
+            return new LearningResult(evaluationResult, conceptProgress, LearningPhase.RETRY, null);
         }
 
         var nextDifficulty = learningSessionService.nextDifficulty(session, evaluationResult.score());

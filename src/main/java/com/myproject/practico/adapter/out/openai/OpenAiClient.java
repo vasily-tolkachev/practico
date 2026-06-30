@@ -33,115 +33,116 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String PROMPT = """
-            You are a technical learning coach for beginners.
-            The user is learning this concept for the first time.
-            Do not grade as an interview.
-            Reward partial understanding.
-            If the user identified the core idea, treat it as a good learning answer.
-            The goal is learning progress, not filtering candidates.
-            Evaluate in any language. Ignore typos.
-            Evaluate ONLY the knowledge required to answer the asked question.
-            Do not require information that was not requested.
-            Do not reward extra information.
-            Do not penalize missing extra details if the question is correctly answered.
-            Use question type to scope expected depth:
-            - DEFINITION: concise meaning only.
-            - UNDERSTANDING: short "why/how" reasoning tied to the asked point.
-            - APPLICATION: practical use-case or decision in context.
-            - COMPARISON: key difference between asked options only.
+            Ты технический наставник для начинающих.
+            Пользователь изучает этот концепт впервые.
+            Не оценивай как на собеседовании.
+            Поощряй частичное понимание.
+            Если пользователь уловил основную идею, считай это хорошим учебным ответом.
+            Цель — прогресс в обучении, а не отбор кандидатов.
+            Отвечай пользователю строго на русском языке. Игнорируй опечатки.
+            Оценивай ТОЛЬКО знания, необходимые для ответа на заданный вопрос.
+            Не требуй информацию, о которой не спрашивали.
+            Не награждай за лишние детали.
+            Не штрафуй за отсутствие дополнительных деталей, если на вопрос отвечено корректно.
+            Используй тип вопроса для глубины:
+            - DEFINITION: только краткое определение.
+            - UNDERSTANDING: короткое «почему/как» по сути вопроса.
+            - APPLICATION: практическое применение в контексте.
+            - COMPARISON: ключевое различие только между запрошенными вариантами.
 
-            Use this score meaning:
-            0-2: does not understand yet
-            3-5: has some idea
-            6-7: core idea understood
-            8-10: excellent explanation
+            Шкала:
+            0-2: пока не понимает
+            3-5: есть частичное понимание
+            6-7: основная идея понята
+            8-10: отличное объяснение
 
-            Return JSON only in this shape:
+            Верни только JSON в этой форме:
 
             {
               "score": number from 0 to 10,
               "answeredQuestion": true or false,
-              "evaluation": "short constructive evaluation",
+              "evaluation": "короткая конструктивная обратная связь на русском",
               "learningCard": {
-                "title": "short title",
-                "explanation": "very short explanation of what was missing"
+                "title": "короткий заголовок на русском",
+                "explanation": "очень короткое объяснение того, чего не хватило, на русском"
               },
               "quickCheck": {
-                "question": "ONE tiny check question",
-                "expectedAnswer": "short expected answer"
+                "question": "ОДИН очень короткий проверочный вопрос на русском",
+                "expectedAnswer": "короткий ожидаемый ответ на русском"
               },
               "practice": [
                 {
                   "type": "TRUE_FALSE",
-                  "question": "short question",
+                  "question": "короткий вопрос на русском",
                   "expectedBoolean": true
                 },
                 {
                   "type": "MULTIPLE_CHOICE",
-                  "question": "short question",
+                  "question": "короткий вопрос на русском",
                   "options": ["...", "...", "..."],
-                  "correctOptions": [1]
+                  "correctOptions": [2]
                 }
               ],
               "retryRubric": ["idea 1", "idea 2"],
-              "retryQuestion": "short easier retry question"
+              "retryQuestion": "короткий упрощённый повторный вопрос на русском"
             }
 
-            If answeredQuestion is true, set "learningCard", "quickCheck", "practice", "retryRubric", and "retryQuestion" to null.
-            Keep "evaluation" short, supportive, and at most 2 sentences.
-            Keep learningCard explanation under 70 words.
-            LearningCard must focus only on what was missing in the user's answer.
-            For practice:
-            - generate 3 to 5 items
-            - use only TRUE_FALSE and MULTIPLE_CHOICE
-            - keep each question short
-            - MULTIPLE_CHOICE should have 3 or 4 options
-            - for MULTIPLE_CHOICE, correctOptions must be 1-based indexes: A=1, B=2, C=3, D=4
-            For quickCheck question:
-            - ask exactly one tiny question
-            - prefer true/false, choose one, or one short "why"
-            - do not ask for long explanations or multiple parts
-            For retryQuestion:
-            - do not repeat the original wording
-            - test the same idea as the original question
-            - make it easier than the original
-            - ask for one key idea only
-            - maximum 20 words
-            For retryRubric:
-            - return 2 to 4 short expected ideas
-            - each idea should be a concrete check target for retry evaluation
+            Если answeredQuestion = true, установи "learningCard", "quickCheck", "practice", "retryRubric" и "retryQuestion" в null.
+            Поле "evaluation" должно быть коротким, поддерживающим, максимум 2 предложения.
+            Объяснение в learningCard: до 70 слов.
+            LearningCard должна объяснять только то, чего не хватило в ответе пользователя.
+            Для practice:
+            - сгенерируй 3-5 заданий
+            - используй только TRUE_FALSE и MULTIPLE_CHOICE
+            - каждое задание должно быть коротким
+            - в MULTIPLE_CHOICE должно быть 3 или 4 варианта
+            - для MULTIPLE_CHOICE correctOptions должен быть 1-based: 1, 2, 3, 4
+            Для quickCheck:
+            - ровно один очень короткий вопрос
+            - лучше true/false, выбор одного варианта или короткое «почему»
+            - без длинных объяснений и составных вопросов
+            Для retryQuestion:
+            - не повторяй исходную формулировку
+            - проверяй ту же идею, что в исходном вопросе
+            - сделай вопрос проще исходного
+            - проверяй только одну ключевую идею
+            - максимум 20 слов
+            Для retryRubric:
+            - верни 2-4 коротких ожидаемых идеи
+            - каждая идея должна быть конкретным критерием проверки retry
 
-            Question:
+            Вопрос:
             %s
 
-            Question type:
+            Тип вопроса:
             %s
 
-            Answer:
+            Ответ пользователя:
             %s
             """;
     private static final String RETRY_PROMPT = """
-            You are evaluating a retry answer after learning and practice.
-            The user has already read a learning card and completed practice.
-            Evaluate only against the retry rubric below.
+            Ты оцениваешь повторный ответ после обучения и практики.
+            Пользователь уже прочитал карточку и прошёл практику.
+            Оценивай только по рубрике retry ниже.
+            Пиши ответ пользователю строго на русском языке.
 
-            Retry question:
+            Повторный вопрос:
             %s
 
-            Question type:
+            Тип вопроса:
             %s
 
-            Retry rubric ideas:
+            Идеи рубрики retry:
             %s
 
-            User answer:
+            Ответ пользователя:
             %s
 
-            Return JSON only in this shape:
+            Верни только JSON в этой форме:
             {
               "score": number from 0 to 10,
               "answeredQuestion": true or false,
-              "evaluation": "short constructive feedback",
+              "evaluation": "короткая конструктивная обратная связь на русском",
               "learningCard": null,
               "quickCheck": null,
               "practice": null,
@@ -149,32 +150,33 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
               "retryQuestion": null
             }
 
-            Rules:
-            - Mark answeredQuestion true if the answer covers enough rubric ideas.
-            - Use rubric coverage as primary decision, not answer length.
-            - Keep feedback short (max 2 sentences).
+            Правила:
+            - Ставь answeredQuestion=true, если в ответе корректно отражена хотя бы одна ключевая идея рубрики.
+            - Главный критерий — покрытие рубрики, а не длина ответа.
+            - Обратная связь короткая (максимум 2 предложения).
             """;
     private static final String QUICK_CHECK_PROMPT = """
-            You are checking a quick understanding question.
+            Ты проверяешь короткий проверочный вопрос.
+            Пиши ответ пользователю строго на русском языке.
 
-            Question:
+            Вопрос:
             %s
 
-            Expected answer:
+            Ожидаемый ответ:
             %s
 
-            User answer:
+            Ответ пользователя:
             %s
 
-            Determine whether the user's answer demonstrates understanding.
+            Определи, демонстрирует ли ответ понимание.
 
-            The wording does NOT need to match.
-            Accept synonyms and equivalent explanations.
+            Формулировка не обязана совпадать дословно.
+            Принимай синонимы и эквивалентные формулировки.
 
-            Return JSON only in this shape:
+            Верни только JSON в этой форме:
             {
               "correct": true,
-              "feedback": "short constructive feedback"
+              "feedback": "короткая конструктивная обратная связь на русском"
             }
             """;
     private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(\\d+)");
@@ -205,7 +207,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         String apiKey = properties.apiKey();
         if (apiKey == null || apiKey.isBlank()) {
             log.error("OpenAI evaluation skipped: OPENAI_API_KEY is empty");
-            return fallback("AI evaluation is unavailable: OPENAI_API_KEY is not configured.");
+            return fallback("Оценка ИИ недоступна: OPENAI_API_KEY не настроен.");
         }
 
         boolean retryMode = request.retryRubric() != null && !request.retryRubric().isEmpty();
@@ -225,7 +227,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 )
         );
         if (content == null || content.isBlank()) {
-            return fallback("AI evaluation is temporarily unavailable. Please try again.");
+            return fallback("Оценка ИИ временно недоступна. Попробуйте ещё раз.");
         }
 
         return parseResult(content);
@@ -236,7 +238,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         String apiKey = properties.apiKey();
         if (apiKey == null || apiKey.isBlank()) {
             log.error("OpenAI quick check skipped: OPENAI_API_KEY is empty");
-            return quickCheckFallback("Quick check is temporarily unavailable.");
+            return quickCheckFallback("Мини-проверка временно недоступна.");
         }
 
         String content = callModel(
@@ -248,7 +250,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 )
         );
         if (content == null || content.isBlank()) {
-            return quickCheckFallback("Quick check is temporarily unavailable.");
+            return quickCheckFallback("Мини-проверка временно недоступна.");
         }
 
         return parseQuickCheckResult(content);
@@ -272,7 +274,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                     .body(new ChatCompletionRequest(
                             model,
                             new Message[]{
-                                    new Message("system", "You are a concise and strict evaluator."),
+                                    new Message("system", "Ты лаконичный и строгий оценщик. Всегда отвечай пользователю на русском языке."),
                                     new Message("user", prompt)
                             },
                             new ResponseFormat("json_object")
@@ -332,10 +334,10 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private String parseEvaluation(String content) {
         Matcher matcher = EVALUATION_PATTERN.matcher(content);
         if (!matcher.find()) {
-            return "No evaluation provided.";
+            return "Оценка не предоставлена.";
         }
         String value = unescape(matcher.group(1)).trim();
-        return value.isEmpty() ? "No evaluation provided." : value;
+        return value.isEmpty() ? "Оценка не предоставлена." : value;
     }
 
     private boolean parseAnsweredQuestion(String content, int score) {
@@ -351,14 +353,14 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         if (textMatcher.find()) {
             String explanation = unescape(textMatcher.group(1)).trim();
             if (!explanation.isEmpty()) {
-                return new LearningCard("Key concept", explanation);
+                return new LearningCard("Ключевая идея", explanation);
             }
         }
 
         Matcher objectMatcher = LEARNING_CARD_OBJECT_PATTERN.matcher(content);
         if (objectMatcher.find()) {
             String objectContent = objectMatcher.group(1);
-            String title = parseField(objectContent, TITLE_PATTERN, "Key concept");
+            String title = parseField(objectContent, TITLE_PATTERN, "Ключевая идея");
             String explanation = parseField(objectContent, EXPLANATION_PATTERN, "");
             if (!explanation.isBlank()) {
                 return new LearningCard(title, explanation);
@@ -366,7 +368,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
         }
 
         if (!answeredQuestion) {
-            return new LearningCard("Key concept", evaluation);
+            return new LearningCard("Ключевая идея", evaluation);
         }
 
         return null;
@@ -456,7 +458,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                     if (!item.has("expectedBoolean")) {
                         continue;
                     }
-                    items.add(new PracticeItem(type, question, List.of(), List.of(), item.path("expectedBoolean").asBoolean()));
+                    items.add(new PracticeItem(type, question, List.of(), List.of(), item.path("expectedBoolean").asBoolean(), false));
                     continue;
                 }
 
@@ -512,7 +514,12 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                     continue;
                 }
 
-                items.add(new PracticeItem(type, question, options, correctOptions, null));
+                boolean containsZero = correctOptions.stream().anyMatch(i -> i == 0);
+                boolean containsMax = correctOptions.stream().anyMatch(i -> i == options.size());
+                boolean ambiguousIndexing = !containsZero && !containsMax
+                        && correctOptions.stream().allMatch(i -> i > 0 && i < options.size());
+
+                items.add(new PracticeItem(type, question, options, correctOptions, null, ambiguousIndexing));
             }
             return items;
         } catch (Exception ex) {
@@ -524,7 +531,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
     private QuickCheckResult parseQuickCheckResult(String content) {
         Matcher correctMatcher = QUICK_CHECK_CORRECT_PATTERN.matcher(content);
         boolean correct = correctMatcher.find() && Boolean.parseBoolean(correctMatcher.group(1).toLowerCase());
-        String feedback = parseField(content, QUICK_CHECK_FEEDBACK_PATTERN, correct ? "Correct." : "Almost. Try again.");
+        String feedback = parseField(content, QUICK_CHECK_FEEDBACK_PATTERN, correct ? "Верно." : "Почти верно. Попробуйте ещё раз.");
         return new QuickCheckResult(correct, feedback);
     }
 
@@ -546,7 +553,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
 
     private String formatRetryRubric(List<String> retryRubric) {
         if (retryRubric == null || retryRubric.isEmpty()) {
-            return "- (no rubric provided)";
+            return "- (рубрика не передана)";
         }
         StringBuilder builder = new StringBuilder();
         for (String item : retryRubric) {
@@ -558,7 +565,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
             }
             builder.append("- ").append(item.trim());
         }
-        return builder.length() == 0 ? "- (no rubric provided)" : builder.toString();
+        return builder.length() == 0 ? "- (рубрика не передана)" : builder.toString();
     }
 
     private EvaluationResult fallback(String evaluation) {
@@ -566,7 +573,7 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 0,
                 false,
                 evaluation,
-                new LearningCard("Key concept", "Review the concept and try again."),
+                new LearningCard("Ключевая идея", "Просмотрите концепт и попробуйте снова."),
                 null,
                 List.of(),
                 List.of(),

@@ -22,6 +22,10 @@ public interface GetQuestionUseCase {
 
     Optional<Question> getNextFromNextConcept(Long currentConceptId, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
 
+    Optional<Question> getFirstFromTopic(String topicName, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
+
+    Optional<Question> getFirstFromConceptName(String conceptName, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds);
+
     Optional<Question> getById(Long id);
 
     int conceptOrder(Long conceptId);

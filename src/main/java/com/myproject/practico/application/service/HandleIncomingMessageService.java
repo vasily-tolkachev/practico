@@ -66,23 +66,32 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
 
         if (session.phase() == LearningPhase.LEARNING_CARD) {
             List<PracticeItem> practiceItems = session.currentCycle() == null ? null : session.currentCycle().practiceItems();
-            if (practiceItems == null || practiceItems.isEmpty()) {
-                learningSessionService.setPhase(userId, LearningPhase.RETRY);
-                String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
-                if (retryQuestionText == null || retryQuestionText.isBlank()) {
-                    return "Practice is unavailable. Please continue with the next answer.";
-                }
-                return "Retry question:\n" + retryQuestionText;
+            if (practiceItems != null && !practiceItems.isEmpty()) {
+                learningSessionService.setPracticeIndex(userId, 0);
+                learningSessionService.setPhase(userId, LearningPhase.PRACTICE);
+                return formatPracticeQuestion(practiceItems.get(0), 1, practiceItems.size());
             }
-            learningSessionService.setPracticeIndex(userId, 0);
-            learningSessionService.setPhase(userId, LearningPhase.PRACTICE);
-            return formatPracticeQuestion(practiceItems.get(0), 1, practiceItems.size());
+
+            if (session.currentCycle() != null
+                    && session.currentCycle().quickCheck() != null
+                    && session.currentCycle().quickCheck().question() != null
+                    && !session.currentCycle().quickCheck().question().isBlank()) {
+                learningSessionService.setPhase(userId, LearningPhase.QUICK_CHECK);
+                return "Мини-проверка:\n" + session.currentCycle().quickCheck().question();
+            }
+
+            learningSessionService.setPhase(userId, LearningPhase.RETRY);
+            String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
+            if (retryQuestionText == null || retryQuestionText.isBlank()) {
+                return "Повторный вопрос недоступен. Продолжайте следующим ответом.";
+            }
+            return "Повторный вопрос:\n" + retryQuestionText;
         }
 
         if (session.phase() == LearningPhase.PRACTICE) {
             List<PracticeItem> practiceItems = session.currentCycle() == null ? null : session.currentCycle().practiceItems();
             if (practiceItems == null || practiceItems.isEmpty()) {
-                return "Practice is unavailable. Please continue with the next answer.";
+                return "Практика недоступна. Продолжайте следующим ответом.";
             }
 
             int index = Math.max(0, session.currentPracticeIndex());
@@ -93,7 +102,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
             PracticeCheckResult checkResult = practiceService.check(text, currentItem);
             if (!checkResult.correct()) {
                 String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
-                        ? "Not quite yet."
+                        ? "Пока не совсем так."
                         : checkResult.feedback();
                 return feedback + "\n\n" + formatPracticeQuestion(currentItem, index + 1, practiceItems.size());
             }
@@ -102,7 +111,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
             if (nextIndex < practiceItems.size()) {
                 learningSessionService.setPracticeIndex(userId, nextIndex);
                 String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
-                        ? "Correct."
+                        ? "Верно."
                         : checkResult.feedback();
                 return feedback + "\n\n" + formatPracticeQuestion(practiceItems.get(nextIndex), nextIndex + 1, practiceItems.size());
             }
@@ -111,7 +120,7 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
 
             Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
             if (currentQuestion == null || currentQuestion.text() == null || currentQuestion.text().isBlank()) {
-                return "Practice complete. Now retry the previous question.";
+                return "Практика завершена. Теперь ответьте на повторный вопрос.";
             }
 
             String retryQuestionText = session.currentCycle() == null ? null : session.currentCycle().retryQuestion();
@@ -138,25 +147,25 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
             }
 
             String feedback = checkResult.feedback() == null || checkResult.feedback().isBlank()
-                    ? "Practice complete."
+                    ? "Практика завершена."
                     : checkResult.feedback();
-            return feedback + "\n\nRetry question:\n" + retryQuestionText;
+            return feedback + "\n\nПовторный вопрос:\n" + retryQuestionText;
         }
 
         if (session.phase() == LearningPhase.QUICK_CHECK) {
             if (session.currentCycle() == null || session.currentCycle().quickCheck() == null) {
-                return "Quick check is unavailable. Please continue with the next answer.";
+                return "Мини-проверка недоступна. Продолжайте следующим ответом.";
             }
 
             QuickCheckResult quickCheckResult = quickCheckService.check(text, session.currentCycle().quickCheck());
             if (!quickCheckResult.correct()) {
                 String feedback = quickCheckResult.feedback() == null || quickCheckResult.feedback().isBlank()
-                        ? "Not quite yet."
+                        ? "Пока не совсем так."
                         : quickCheckResult.feedback();
-                return feedback + "\n\nTry again:\n" + session.currentCycle().quickCheck().question();
+                return feedback + "\n\nПопробуйте ещё раз:\n" + session.currentCycle().quickCheck().question();
             }
             learningSessionService.setPhase(userId, LearningPhase.RETRY);
-            return "Correct. Retry question:\n" + (session.currentCycle().retryQuestion() == null ? "" : session.currentCycle().retryQuestion());
+            return "Верно. Повторный вопрос:\n" + (session.currentCycle().retryQuestion() == null ? "" : session.currentCycle().retryQuestion());
         }
 
         return submitAnswerUseCase.submit(userId, text);
@@ -164,16 +173,16 @@ public class HandleIncomingMessageService implements HandleIncomingMessageUseCas
 
     private String formatPracticeQuestion(PracticeItem item, int index, int total) {
         StringBuilder response = new StringBuilder();
-        response.append("Practice ").append(index).append("/").append(total).append(":\n");
+        response.append("Практика ").append(index).append("/").append(total).append(":\n");
         response.append(item.question());
         if (item.type() == PracticeType.TRUE_FALSE) {
-            response.append("\n(True/False)");
+            response.append("\n(Верно/Неверно)");
         } else if (item.type() == PracticeType.MULTIPLE_CHOICE && item.options() != null && !item.options().isEmpty()) {
             for (int i = 0; i < item.options().size(); i++) {
-                char label = (char) ('A' + i);
+                int label = i + 1;
                 response.append("\n").append(label).append(") ").append(item.options().get(i));
             }
-            response.append("\n(Reply with letter(s), e.g. A or A,C)");
+            response.append("\n(Ответьте номером/номерами, например: 2 или 1,3)");
         }
         return response.toString();
     }

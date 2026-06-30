@@ -166,6 +166,99 @@ public class GetQuestionService implements GetQuestionUseCase {
     }
 
     @Override
+    public Optional<Question> getFirstFromTopic(String topicName, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
+        if (topicName == null || topicName.isBlank()) {
+            return Optional.empty();
+        }
+
+        List<Question> topicQuestions = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds).stream()
+                .filter(question -> question.concept() != null
+                        && question.concept().topic() != null
+                        && question.concept().topic().name() != null
+                        && question.concept().topic().name().equalsIgnoreCase(topicName))
+                .toList();
+        if (topicQuestions.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<Long> orderedConceptIds = topicQuestions.stream()
+                .map(question -> question.concept() == null ? null : question.concept().id())
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+        if (orderedConceptIds.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Long firstConceptId = orderedConceptIds.get(0);
+        List<Question> firstConceptQuestions = topicQuestions.stream()
+                .filter(question -> question.concept() != null && Objects.equals(question.concept().id(), firstConceptId))
+                .toList();
+        if (firstConceptQuestions.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<Long> orderedMicroConceptIds = firstConceptQuestions.stream()
+                .map(Question::microConcept)
+                .filter(Objects::nonNull)
+                .filter(micro -> micro.id() != null)
+                .sorted(Comparator
+                        .comparing((com.myproject.practico.domain.MicroConcept micro) ->
+                                micro.sortOrder() == null ? Integer.MAX_VALUE : micro.sortOrder())
+                        .thenComparing(com.myproject.practico.domain.MicroConcept::id))
+                .map(com.myproject.practico.domain.MicroConcept::id)
+                .distinct()
+                .toList();
+        if (orderedMicroConceptIds.isEmpty()) {
+            return pickByDifficulty(firstConceptQuestions, preferredDifficulty);
+        }
+
+        Long firstMicroConceptId = orderedMicroConceptIds.get(0);
+        List<Question> firstMicroQuestions = firstConceptQuestions.stream()
+                .filter(question -> question.microConcept() != null && Objects.equals(question.microConcept().id(), firstMicroConceptId))
+                .toList();
+        return pickByDifficulty(firstMicroQuestions, preferredDifficulty);
+    }
+
+    @Override
+    public Optional<Question> getFirstFromConceptName(String conceptName, Difficulty preferredDifficulty, Set<Long> excludedQuestionIds) {
+        if (conceptName == null || conceptName.isBlank()) {
+            return Optional.empty();
+        }
+
+        List<Question> conceptQuestions = filterExcluded(questionPersistencePort.findAll(), excludedQuestionIds).stream()
+                .filter(question -> question.concept() != null
+                        && question.concept().name() != null
+                        && question.concept().name().equalsIgnoreCase(conceptName))
+                .toList();
+        if (conceptQuestions.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<Long> orderedMicroConceptIds = conceptQuestions.stream()
+                .map(Question::microConcept)
+                .filter(Objects::nonNull)
+                .filter(micro -> micro.id() != null)
+                .sorted(Comparator
+                        .comparing((com.myproject.practico.domain.MicroConcept micro) ->
+                                micro.sortOrder() == null ? Integer.MAX_VALUE : micro.sortOrder())
+                        .thenComparing(com.myproject.practico.domain.MicroConcept::id))
+                .map(com.myproject.practico.domain.MicroConcept::id)
+                .distinct()
+                .toList();
+        if (orderedMicroConceptIds.isEmpty()) {
+            return pickByDifficulty(conceptQuestions, preferredDifficulty);
+        }
+
+        Long firstMicroConceptId = orderedMicroConceptIds.get(0);
+        List<Question> firstMicroQuestions = conceptQuestions.stream()
+                .filter(question -> question.microConcept() != null && Objects.equals(question.microConcept().id(), firstMicroConceptId))
+                .toList();
+        return pickByDifficulty(firstMicroQuestions, preferredDifficulty);
+    }
+
+    @Override
     public Optional<Question> getById(Long id) {
         if (id == null) {
             return Optional.empty();

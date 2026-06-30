@@ -8,7 +8,7 @@ public class PracticeService {
 
     public PracticeCheckResult check(String userAnswer, PracticeItem item) {
         if (item == null || item.type() == null) {
-            return new PracticeCheckResult(false, "Practice item is unavailable.");
+            return new PracticeCheckResult(false, "Задание практики недоступно.");
         }
 
         return switch (item.type()) {
@@ -19,31 +19,45 @@ public class PracticeService {
 
     private PracticeCheckResult checkTrueFalse(String userAnswer, PracticeItem item) {
         if (item.expectedBoolean() == null) {
-            return new PracticeCheckResult(false, "Practice answer is unavailable.");
+            return new PracticeCheckResult(false, "Ожидаемый ответ для практики недоступен.");
         }
         Boolean value = parseBoolean(userAnswer);
         if (value == null) {
-            return new PracticeCheckResult(false, "Please answer True/False (or Yes/No).");
+            return new PracticeCheckResult(false, "Ответьте: «верно/неверно» (или «да/нет»).");
         }
         if (value.equals(item.expectedBoolean())) {
-            return new PracticeCheckResult(true, "Correct.");
+            return new PracticeCheckResult(true, "Верно.");
         }
-        return new PracticeCheckResult(false, "Not quite. Try again.");
+        return new PracticeCheckResult(false, "Пока неверно. Попробуйте ещё раз.");
     }
 
     private PracticeCheckResult checkMultipleChoice(String userAnswer, PracticeItem item) {
         if (item.correctOptions() == null || item.correctOptions().isEmpty()) {
-            return new PracticeCheckResult(false, "Practice answer is unavailable.");
+            return new PracticeCheckResult(false, "Ожидаемый ответ для практики недоступен.");
         }
         Set<Integer> selected = parseSelectedOptions(userAnswer);
         if (selected.isEmpty()) {
-            return new PracticeCheckResult(false, "Please answer with option letters (for example: A or A,C).");
+            return new PracticeCheckResult(false, "Ответьте номером/номерами варианта (например: 2 или 1,3).");
         }
         Set<Integer> expected = new HashSet<>(item.correctOptions());
         if (selected.equals(expected)) {
-            return new PracticeCheckResult(true, "Correct.");
+            return new PracticeCheckResult(true, "Верно.");
         }
-        return new PracticeCheckResult(false, "Not quite. Try again.");
+
+        // Tolerance for ambiguous AI indexing (0-based vs 1-based) only when flagged by parser.
+        if (Boolean.TRUE.equals(item.ambiguousIndexing())) {
+            Set<Integer> shiftedPlusOne = new HashSet<>();
+            for (Integer value : expected) {
+                int shifted = value + 1;
+                if (item.options() != null && shifted > 0 && shifted <= item.options().size()) {
+                    shiftedPlusOne.add(shifted);
+                }
+            }
+            if (!shiftedPlusOne.isEmpty() && selected.equals(shiftedPlusOne)) {
+                return new PracticeCheckResult(true, "Верно.");
+            }
+        }
+        return new PracticeCheckResult(false, "Пока неверно. Попробуйте ещё раз.");
     }
 
     private Boolean parseBoolean(String value) {
@@ -54,6 +68,8 @@ public class PracticeService {
         return switch (normalized) {
             case "true", "t", "yes", "y", "1" -> Boolean.TRUE;
             case "false", "f", "no", "n", "0" -> Boolean.FALSE;
+            case "верно", "в", "да", "д", "истина" -> Boolean.TRUE;
+            case "неверно", "н", "нет", "ложь" -> Boolean.FALSE;
             default -> null;
         };
     }
@@ -64,18 +80,12 @@ public class PracticeService {
             return selected;
         }
 
-        String normalized = value.toUpperCase(Locale.ROOT).replaceAll("\\s+", "");
+        String normalized = value.replaceAll("\\s+", "");
         String[] tokens = normalized.split("[,;/|]+");
         for (String token : tokens) {
             if (token.isBlank()) {
                 continue;
             }
-            // single letter option like A/B/C
-            if (token.length() == 1 && token.charAt(0) >= 'A' && token.charAt(0) <= 'Z') {
-                selected.add((token.charAt(0) - 'A') + 1);
-                continue;
-            }
-            // fallback numeric option index
             try {
                 selected.add(Integer.parseInt(token));
             } catch (NumberFormatException ignored) {

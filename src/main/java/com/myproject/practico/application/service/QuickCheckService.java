@@ -13,7 +13,7 @@ public class QuickCheckService {
 
     public QuickCheckResult check(String userAnswer, QuickCheck quickCheck) {
         if (quickCheck == null || quickCheck.question() == null || quickCheck.question().isBlank()) {
-            return new QuickCheckResult(false, "Quick check is unavailable. Please continue with the next answer.");
+            return new QuickCheckResult(false, "Мини-проверка недоступна. Продолжайте следующим ответом.");
         }
         return quickCheckPort.evaluate(new QuickCheckRequest(
                 quickCheck.question(),
