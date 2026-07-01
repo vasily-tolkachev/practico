@@ -3,6 +3,9 @@ package com.myproject.practico.config;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
+import com.myproject.practico.application.port.in.CreateGoalUseCase;
+import com.myproject.practico.application.port.in.ListGoalsUseCase;
+import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
@@ -12,6 +15,7 @@ import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
@@ -22,6 +26,7 @@ import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
+import com.myproject.practico.application.service.GoalService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
@@ -40,6 +45,26 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationWiringConfig {
+
+    @Bean
+    public GoalService goalService(GoalPersistencePort goalPersistencePort) {
+        return new GoalService(goalPersistencePort);
+    }
+
+    @Bean
+    public CreateGoalUseCase createGoalUseCase(GoalService goalService) {
+        return goalService;
+    }
+
+    @Bean
+    public ListGoalsUseCase listGoalsUseCase(GoalService goalService) {
+        return goalService;
+    }
+
+    @Bean
+    public GetGoalUseCase getGoalUseCase(GoalService goalService) {
+        return goalService;
+    }
 
     @Bean
     public GetQuestionUseCase getQuestionUseCase(QuestionPersistencePort questionPersistencePort) {
