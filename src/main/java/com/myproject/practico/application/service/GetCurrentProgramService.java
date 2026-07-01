@@ -13,6 +13,7 @@ import com.myproject.practico.domain.Topic;
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -107,21 +108,31 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
 
         ProgramMicroConceptStatusIndex statusIndex = buildStatusIndex(userId, orderedTopicMicroConcepts);
 
-        List<ProgramConcept> concepts = topicQuestions.stream()
+        Map<Long, Concept> uniqueConceptsById = topicQuestions.stream()
                 .map(Question::concept)
                 .filter(Objects::nonNull)
                 .collect(java.util.stream.Collectors.toMap(
                         Concept::id,
                         concept -> concept,
-                        (left, right) -> left
-                ))
-                .values()
-                .stream()
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+
+        List<Concept> orderedConcepts = uniqueConceptsById.values().stream()
                 .sorted(Comparator.comparing(Concept::id, Comparator.nullsLast(Long::compareTo)))
-                .map(concept -> new ProgramConcept(
-                        concept.id(),
-                        concept.name(),
-                        topicQuestions.stream()
+                .toList();
+
+        List<ProgramConcept> concepts = orderedConcepts.stream()
+                .map(concept -> {
+                    List<String> prerequisites = orderedConcepts.stream()
+                            .filter(candidate -> candidate.id() != null
+                                    && concept.id() != null
+                                    && candidate.name() != null
+                                    && candidate.id() < concept.id())
+                            .map(Concept::name)
+                            .toList();
+
+                    List<ProgramMicroConcept> conceptMicroConcepts = topicQuestions.stream()
                                 .map(Question::microConcept)
                                 .filter(Objects::nonNull)
                                 .filter(micro -> micro.concept() != null && Objects.equals(micro.concept().id(), concept.id()))
@@ -152,8 +163,18 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
                                             locked
                                     );
                                 })
-                                .toList()
-                ))
+                                .toList();
+
+                    return new ProgramConcept(
+                            concept.id(),
+                            concept.name(),
+                            buildConceptDescription(concept),
+                            estimateConceptMinutes(conceptMicroConcepts.size()),
+                            estimateDifficulty(conceptMicroConcepts.size()),
+                            prerequisites,
+                            conceptMicroConcepts
+                    );
+                })
                 .toList();
 
         int totalMicroConcepts = concepts.stream()
@@ -229,5 +250,25 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
             Set<Long> completedMicroConceptIds,
             Long currentMicroConceptId
     ) {
+    }
+
+    private String buildConceptDescription(Concept concept) {
+        String title = concept == null || concept.name() == null ? "This concept" : concept.name();
+        return "Build practical understanding of " + title + " through sequenced micro concepts.";
+    }
+
+    private Integer estimateConceptMinutes(int microConceptCount) {
+        int normalizedCount = Math.max(1, microConceptCount);
+        return normalizedCount * 15;
+    }
+
+    private String estimateDifficulty(int microConceptCount) {
+        if (microConceptCount >= 6) {
+            return "HARD";
+        }
+        if (microConceptCount >= 3) {
+            return "MEDIUM";
+        }
+        return "EASY";
     }
 }
