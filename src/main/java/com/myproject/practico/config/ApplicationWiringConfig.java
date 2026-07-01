@@ -6,6 +6,7 @@ import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
+import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
@@ -16,6 +17,7 @@ import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
+import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
@@ -47,8 +49,11 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationWiringConfig {
 
     @Bean
-    public GoalService goalService(GoalPersistencePort goalPersistencePort) {
-        return new GoalService(goalPersistencePort);
+    public GoalService goalService(
+            GoalPersistencePort goalPersistencePort,
+            GoalResolutionStatusPort goalResolutionStatusPort
+    ) {
+        return new GoalService(goalPersistencePort, goalResolutionStatusPort);
     }
 
     @Bean
@@ -63,6 +68,11 @@ public class ApplicationWiringConfig {
 
     @Bean
     public GetGoalUseCase getGoalUseCase(GoalService goalService) {
+        return goalService;
+    }
+
+    @Bean
+    public GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase(GoalService goalService) {
         return goalService;
     }
 

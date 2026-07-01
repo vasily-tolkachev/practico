@@ -2,8 +2,10 @@ package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
+import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.domain.Goal;
+import com.myproject.practico.domain.GoalResolutionStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,15 +23,18 @@ public class GoalController {
     private final CreateGoalUseCase createGoalUseCase;
     private final ListGoalsUseCase listGoalsUseCase;
     private final GetGoalUseCase getGoalUseCase;
+    private final GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase;
 
     public GoalController(
             CreateGoalUseCase createGoalUseCase,
             ListGoalsUseCase listGoalsUseCase,
-            GetGoalUseCase getGoalUseCase
+            GetGoalUseCase getGoalUseCase,
+            GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase
     ) {
         this.createGoalUseCase = createGoalUseCase;
         this.listGoalsUseCase = listGoalsUseCase;
         this.getGoalUseCase = getGoalUseCase;
+        this.getGoalResolutionStatusUseCase = getGoalResolutionStatusUseCase;
     }
 
     @PostMapping
@@ -52,6 +57,16 @@ public class GoalController {
             return ResponseEntity.badRequest().build();
         }
         return getGoalUseCase.getById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/resolution-status")
+    public ResponseEntity<GoalResolutionStatus> getResolutionStatus(@PathVariable("id") Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return getGoalResolutionStatusUseCase.getByGoalId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
