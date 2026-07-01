@@ -12,10 +12,12 @@ import com.myproject.practico.domain.Question;
 import com.myproject.practico.domain.Topic;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public class GetCurrentProgramService implements GetCurrentProgramUseCase {
 
@@ -87,6 +89,24 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
                 .findFirst()
                 .orElse(null);
 
+        List<com.myproject.practico.domain.MicroConcept> orderedTopicMicroConcepts = topicQuestions.stream()
+                .map(Question::microConcept)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toMap(
+                        com.myproject.practico.domain.MicroConcept::id,
+                        micro -> micro,
+                        (left, right) -> left
+                ))
+                .values()
+                .stream()
+                .sorted(Comparator
+                        .comparing((com.myproject.practico.domain.MicroConcept micro) ->
+                                micro.sortOrder() == null ? Integer.MAX_VALUE : micro.sortOrder())
+                        .thenComparing(com.myproject.practico.domain.MicroConcept::id, Comparator.nullsLast(Long::compareTo)))
+                .toList();
+
+        ProgramMicroConceptStatusIndex statusIndex = buildStatusIndex(userId, orderedTopicMicroConcepts);
+
         List<ProgramConcept> concepts = topicQuestions.stream()
                 .map(Question::concept)
                 .filter(Objects::nonNull)
@@ -116,7 +136,22 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
                                         .comparing((com.myproject.practico.domain.MicroConcept micro) ->
                                                 micro.sortOrder() == null ? Integer.MAX_VALUE : micro.sortOrder())
                                         .thenComparing(com.myproject.practico.domain.MicroConcept::id, Comparator.nullsLast(Long::compareTo)))
-                                .map(micro -> new ProgramMicroConcept(micro.id(), micro.name(), micro.sortOrder()))
+                                .map(micro -> {
+                                    Long microId = micro.id();
+                                    boolean current = microId != null && Objects.equals(statusIndex.currentMicroConceptId(), microId);
+                                    boolean completed = microId != null
+                                            && statusIndex.completedMicroConceptIds().contains(microId)
+                                            && !current;
+                                    boolean locked = !completed && !current;
+                                    return new ProgramMicroConcept(
+                                            microId,
+                                            micro.name(),
+                                            micro.sortOrder(),
+                                            completed,
+                                            current,
+                                            locked
+                                    );
+                                })
                                 .toList()
                 ))
                 .toList();
@@ -148,5 +183,51 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
                 .filter(Objects::nonNull)
                 .map(Topic::id)
                 .orElse(null);
+    }
+
+    private ProgramMicroConceptStatusIndex buildStatusIndex(
+            String userId,
+            List<com.myproject.practico.domain.MicroConcept> orderedTopicMicroConcepts
+    ) {
+        Optional<LearningSessionStore.LearningSession> sessionOptional = learningSessionService.getSession(userId);
+        if (sessionOptional.isEmpty() || orderedTopicMicroConcepts.isEmpty()) {
+            return new ProgramMicroConceptStatusIndex(Set.of(), null);
+        }
+
+        LearningSessionStore.LearningSession session = sessionOptional.get();
+        Set<Long> completed = new HashSet<>(session.masteredMicroConceptIds());
+        Long currentFromQuestion = resolveCurrentMicroConceptId(session);
+
+        Long current;
+        if (currentFromQuestion != null) {
+            current = currentFromQuestion;
+        } else {
+            current = orderedTopicMicroConcepts.stream()
+                    .map(com.myproject.practico.domain.MicroConcept::id)
+                    .filter(Objects::nonNull)
+                    .filter(id -> !completed.contains(id))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        return new ProgramMicroConceptStatusIndex(Set.copyOf(completed), current);
+    }
+
+    private Long resolveCurrentMicroConceptId(LearningSessionStore.LearningSession session) {
+        if (session.currentQuestionId() == null) {
+            return null;
+        }
+
+        return getQuestionUseCase.getById(session.currentQuestionId())
+                .map(Question::microConcept)
+                .filter(Objects::nonNull)
+                .map(com.myproject.practico.domain.MicroConcept::id)
+                .orElse(null);
+    }
+
+    private record ProgramMicroConceptStatusIndex(
+            Set<Long> completedMicroConceptIds,
+            Long currentMicroConceptId
+    ) {
     }
 }
