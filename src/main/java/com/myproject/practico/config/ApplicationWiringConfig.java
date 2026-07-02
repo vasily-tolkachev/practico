@@ -19,6 +19,7 @@ import com.myproject.practico.application.port.in.SubmitRetryUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
+import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
@@ -26,6 +27,7 @@ import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.ProgramStructurePersistencePort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
@@ -96,9 +98,15 @@ public class ApplicationWiringConfig {
 
     @Bean
     public ProgramResolverUseCase programResolverUseCase(
-            LearningProgramPersistencePort learningProgramPersistencePort
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            AiCourseGeneratorPort aiCourseGeneratorPort,
+            ProgramStructurePersistencePort programStructurePersistencePort
     ) {
-        return new ProgramResolverService(learningProgramPersistencePort);
+        return new ProgramResolverService(
+                learningProgramPersistencePort,
+                aiCourseGeneratorPort,
+                programStructurePersistencePort
+        );
     }
 
     @Bean
