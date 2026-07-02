@@ -3,6 +3,8 @@ package com.myproject.practico.application.service;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
+import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
+import com.myproject.practico.application.port.out.ProgramTreeReadPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.program.LearningProgram;
@@ -35,19 +37,25 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
     private final GetQuestionUseCase getQuestionUseCase;
     private final RuntimeContextStore runtimeContextStore;
     private final GoalPersistencePort goalPersistencePort;
+    private final LearningProgramPersistencePort learningProgramPersistencePort;
+    private final ProgramTreeReadPort programTreeReadPort;
 
     public GetCurrentProgramService(
             QuestionPersistencePort questionPersistencePort,
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             RuntimeContextStore runtimeContextStore,
-            GoalPersistencePort goalPersistencePort
+            GoalPersistencePort goalPersistencePort,
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramTreeReadPort programTreeReadPort
     ) {
         this.questionPersistencePort = questionPersistencePort;
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.runtimeContextStore = runtimeContextStore;
         this.goalPersistencePort = goalPersistencePort;
+        this.learningProgramPersistencePort = learningProgramPersistencePort;
+        this.programTreeReadPort = programTreeReadPort;
     }
 
     @Override
@@ -55,17 +63,27 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         Optional<RuntimeContext> binding = runtimeContextStore.get(userId);
         if (binding.isPresent()) {
             Long goalId = binding.get().goalId();
+            Long programId = parseProgramId(binding.get().programId());
             String goalTitle = goalPersistencePort.findById(goalId)
                     .map(goal -> goal.title() == null || goal.title().isBlank() ? "Goal" : goal.title().trim())
                     .orElse("Goal");
+            List<ProgramConcept> concepts = programId == null
+                    ? List.of()
+                    : programTreeReadPort.findConceptTreeByProgramId(programId);
+            int totalMicroConcepts = concepts.stream().mapToInt(concept -> concept.microConcepts().size()).sum();
+            String programTitle = programId == null
+                    ? goalTitle + " Program"
+                    : learningProgramPersistencePort.findById(programId)
+                    .map(program -> program.title() == null || program.title().isBlank() ? goalTitle + " Program" : program.title())
+                    .orElse(goalTitle + " Program");
             return new LearningProgram(
                     binding.get().programId(),
                     goalId,
                     ProgramOrigin.GOAL_BASED,
-                    goalTitle + " Program",
+                    programTitle,
                     goalTitle,
-                    List.of(),
-                    new ProgramProgress(0, 0)
+                    concepts,
+                    new ProgramProgress(concepts.size(), totalMicroConcepts)
             );
         }
 
@@ -239,6 +257,17 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
                 .filter(Objects::nonNull)
                 .map(Topic::id)
                 .orElse(null);
+    }
+
+    private Long parseProgramId(String programId) {
+        if (programId == null || programId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(programId.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private ProgramMicroConceptStatusIndex buildStatusIndex(

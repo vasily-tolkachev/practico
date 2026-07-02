@@ -164,14 +164,18 @@ public class ApplicationWiringConfig {
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             RuntimeContextStore runtimeContextStore,
-            GoalPersistencePort goalPersistencePort
+            GoalPersistencePort goalPersistencePort,
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramTreeReadPort programTreeReadPort
     ) {
         return new GetCurrentProgramService(
                 questionPersistencePort,
                 learningSessionService,
                 getQuestionUseCase,
                 runtimeContextStore,
-                goalPersistencePort
+                goalPersistencePort,
+                learningProgramPersistencePort,
+                programTreeReadPort
         );
     }
 
