@@ -25,6 +25,7 @@ import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePor
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
 import com.myproject.practico.application.service.EvaluationService;
@@ -35,8 +36,6 @@ import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
 import com.myproject.practico.application.service.GoalService;
 import com.myproject.practico.application.service.GetGoalProgramService;
-import com.myproject.practico.application.service.GoalRuntimeBindingService;
-import com.myproject.practico.application.service.GoalRuntimeBindingStore;
 import com.myproject.practico.application.service.AttachProgramToGoalService;
 import com.myproject.practico.application.service.ProgramResolverService;
 import com.myproject.practico.application.service.LearningEngine;
@@ -113,7 +112,7 @@ public class ApplicationWiringConfig {
             ProgramResolverUseCase programResolverUseCase,
             AttachProgramToGoalUseCase attachProgramToGoalUseCase,
             StartLearningUseCase startLearningUseCase,
-            GoalRuntimeBindingService goalRuntimeBindingService
+            RuntimeContextStore runtimeContextStore
     ) {
         return new StartLearningFromGoalService(
                 goalPersistencePort,
@@ -121,7 +120,7 @@ public class ApplicationWiringConfig {
                 programResolverUseCase,
                 attachProgramToGoalUseCase,
                 startLearningUseCase,
-                goalRuntimeBindingService
+                runtimeContextStore
         );
     }
 
@@ -146,26 +145,16 @@ public class ApplicationWiringConfig {
             QuestionPersistencePort questionPersistencePort,
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
-            GoalRuntimeBindingService goalRuntimeBindingService,
+            RuntimeContextStore runtimeContextStore,
             GoalPersistencePort goalPersistencePort
     ) {
         return new GetCurrentProgramService(
                 questionPersistencePort,
                 learningSessionService,
                 getQuestionUseCase,
-                goalRuntimeBindingService,
+                runtimeContextStore,
                 goalPersistencePort
         );
-    }
-
-    @Bean
-    public GoalRuntimeBindingStore goalRuntimeBindingStore() {
-        return new GoalRuntimeBindingStore();
-    }
-
-    @Bean
-    public GoalRuntimeBindingService goalRuntimeBindingService(GoalRuntimeBindingStore goalRuntimeBindingStore) {
-        return new GoalRuntimeBindingService(goalRuntimeBindingStore);
     }
 
     @Bean

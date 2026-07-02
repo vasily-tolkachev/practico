@@ -4,6 +4,7 @@ import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramConcept;
 import com.myproject.practico.application.program.ProgramMicroConcept;
@@ -11,6 +12,7 @@ import com.myproject.practico.application.program.ProgramOrigin;
 import com.myproject.practico.application.program.ProgramProgress;
 import com.myproject.practico.domain.Concept;
 import com.myproject.practico.domain.Question;
+import com.myproject.practico.domain.RuntimeContext;
 import com.myproject.practico.domain.Topic;
 
 import java.util.Comparator;
@@ -31,26 +33,26 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
     private final QuestionPersistencePort questionPersistencePort;
     private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
-    private final GoalRuntimeBindingService goalRuntimeBindingService;
+    private final RuntimeContextStore runtimeContextStore;
     private final GoalPersistencePort goalPersistencePort;
 
     public GetCurrentProgramService(
             QuestionPersistencePort questionPersistencePort,
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
-            GoalRuntimeBindingService goalRuntimeBindingService,
+            RuntimeContextStore runtimeContextStore,
             GoalPersistencePort goalPersistencePort
     ) {
         this.questionPersistencePort = questionPersistencePort;
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
-        this.goalRuntimeBindingService = goalRuntimeBindingService;
+        this.runtimeContextStore = runtimeContextStore;
         this.goalPersistencePort = goalPersistencePort;
     }
 
     @Override
     public LearningProgram getCurrentProgram(String userId) {
-        Optional<GoalRuntimeBindingStore.GoalRuntimeBinding> binding = goalRuntimeBindingService.get(userId);
+        Optional<RuntimeContext> binding = runtimeContextStore.get(userId);
         if (binding.isPresent()) {
             Long goalId = binding.get().goalId();
             String goalTitle = goalPersistencePort.findById(goalId)

@@ -7,6 +7,7 @@ import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
+import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.program.ProgramResolutionResult;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalProgramLink;
@@ -22,7 +23,7 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
     private final ProgramResolverUseCase programResolverUseCase;
     private final AttachProgramToGoalUseCase attachProgramToGoalUseCase;
     private final StartLearningUseCase startLearningUseCase;
-    private final GoalRuntimeBindingService goalRuntimeBindingService;
+    private final RuntimeContextStore runtimeContextStore;
 
     public StartLearningFromGoalService(
             GoalPersistencePort goalPersistencePort,
@@ -30,14 +31,14 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
             ProgramResolverUseCase programResolverUseCase,
             AttachProgramToGoalUseCase attachProgramToGoalUseCase,
             StartLearningUseCase startLearningUseCase,
-            GoalRuntimeBindingService goalRuntimeBindingService
+            RuntimeContextStore runtimeContextStore
     ) {
         this.goalPersistencePort = goalPersistencePort;
         this.goalProgramLinkPersistencePort = goalProgramLinkPersistencePort;
         this.programResolverUseCase = programResolverUseCase;
         this.attachProgramToGoalUseCase = attachProgramToGoalUseCase;
         this.startLearningUseCase = startLearningUseCase;
-        this.goalRuntimeBindingService = goalRuntimeBindingService;
+        this.runtimeContextStore = runtimeContextStore;
     }
 
     @Override
@@ -59,7 +60,7 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
                     return attachProgramToGoalUseCase.attach(goalId, resolved.program().programId(), resolved.sourceType());
                 });
 
-        goalRuntimeBindingService.bind(runtimeUserId, goalId, goalProgramLink.programId());
+        runtimeContextStore.bind(runtimeUserId, goalId, goalProgramLink.programId());
         startLearningUseCase.start(runtimeUserId);
         return Optional.of(new GoalLearningStartResult(goalId, goalProgramLink.programId(), "READY"));
     }
