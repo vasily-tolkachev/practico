@@ -57,15 +57,27 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
         GoalProgramLink goalProgramLink = goalProgramLinkPersistencePort.findByGoalId(goalId)
                 .orElseGet(() -> {
                     ProgramResolutionResult resolved = programResolverUseCase.resolveForGoal(goal, runtimeUserId);
-                    return attachProgramToGoalUseCase.attach(goalId, resolved.program().programId(), resolved.sourceType());
+                    Long programId = parseProgramId(resolved.program().programId());
+                    return attachProgramToGoalUseCase.attach(goalId, programId, resolved.sourceType());
                 });
 
-        runtimeContextStore.bind(runtimeUserId, goalId, goalProgramLink.programId());
+        runtimeContextStore.bind(runtimeUserId, goalId, String.valueOf(goalProgramLink.programId()));
         startLearningUseCase.start(runtimeUserId);
-        return Optional.of(new GoalLearningStartResult(goalId, goalProgramLink.programId(), "READY"));
+        return Optional.of(new GoalLearningStartResult(goalId, String.valueOf(goalProgramLink.programId()), "READY"));
     }
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private Long parseProgramId(String programId) {
+        if (programId == null || programId.isBlank()) {
+            throw new IllegalStateException("Program id is blank");
+        }
+        try {
+            return Long.parseLong(programId);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Program id must be numeric: " + programId, ex);
+        }
     }
 }

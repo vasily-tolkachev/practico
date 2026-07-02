@@ -23,6 +23,7 @@ import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
+import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
@@ -94,8 +95,10 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
-    public ProgramResolverUseCase programResolverUseCase() {
-        return new ProgramResolverService();
+    public ProgramResolverUseCase programResolverUseCase(
+            LearningProgramPersistencePort learningProgramPersistencePort
+    ) {
+        return new ProgramResolverService(learningProgramPersistencePort);
     }
 
     @Bean
@@ -127,11 +130,13 @@ public class ApplicationWiringConfig {
     @Bean
     public GetGoalProgramUseCase getGoalProgramUseCase(
             GoalPersistencePort goalPersistencePort,
-            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort
+            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort,
+            LearningProgramPersistencePort learningProgramPersistencePort
     ) {
         return new GetGoalProgramService(
                 goalPersistencePort,
-                goalProgramLinkPersistencePort
+                goalProgramLinkPersistencePort,
+                learningProgramPersistencePort
         );
     }
 

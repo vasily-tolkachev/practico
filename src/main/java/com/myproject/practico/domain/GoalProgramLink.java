@@ -5,7 +5,7 @@ import java.time.Instant;
 public record GoalProgramLink(
         Long id,
         Long goalId,
-        String programId,
+        Long programId,
         GoalProgramSourceType sourceType,
         Instant createdAt
 ) {

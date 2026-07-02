@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface GoalProgramLinkJpaRepository extends JpaRepository<GoalProgramLinkJpaEntity, Long> {
     Optional<GoalProgramLinkJpaEntity> findByGoalId(Long goalId);
 
-    Optional<GoalProgramLinkJpaEntity> findByGoalIdAndProgramId(Long goalId, String programId);
+    Optional<GoalProgramLinkJpaEntity> findByGoalIdAndProgram_Id(Long goalId, Long programId);
 }

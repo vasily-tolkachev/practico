@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -35,8 +37,9 @@ public class GoalProgramLinkJpaEntity {
     @Column(name = "goal_id", nullable = false)
     private Long goalId;
 
-    @Column(name = "program_id", nullable = false, length = 128)
-    private String programId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "program_id", nullable = false)
+    private LearningProgramJpaEntity program;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 32)

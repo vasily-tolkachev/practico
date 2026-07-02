@@ -1,9 +1,12 @@
 package com.myproject.practico.adapter.out.persistence;
 
 import com.myproject.practico.adapter.out.persistence.entity.GoalProgramLinkJpaEntity;
+import com.myproject.practico.adapter.out.persistence.entity.LearningProgramJpaEntity;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
 import com.myproject.practico.domain.GoalProgramLink;
 import com.myproject.practico.domain.GoalProgramSourceType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,13 +18,15 @@ import java.util.Optional;
 public class GoalProgramLinkPersistenceAdapter implements GoalProgramLinkPersistencePort {
 
     private final GoalProgramLinkJpaRepository goalProgramLinkJpaRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
-    public GoalProgramLink create(Long goalId, String programId, GoalProgramSourceType sourceType) {
+    public GoalProgramLink create(Long goalId, Long programId, GoalProgramSourceType sourceType) {
         GoalProgramLinkJpaEntity created = goalProgramLinkJpaRepository.save(new GoalProgramLinkJpaEntity(
                 null,
                 goalId,
-                programId,
+                entityManager.getReference(LearningProgramJpaEntity.class, programId),
                 sourceType,
                 Instant.now()
         ));
@@ -34,15 +39,15 @@ public class GoalProgramLinkPersistenceAdapter implements GoalProgramLinkPersist
     }
 
     @Override
-    public Optional<GoalProgramLink> findByGoalIdAndProgramId(Long goalId, String programId) {
-        return goalProgramLinkJpaRepository.findByGoalIdAndProgramId(goalId, programId).map(this::toDomain);
+    public Optional<GoalProgramLink> findByGoalIdAndProgramId(Long goalId, Long programId) {
+        return goalProgramLinkJpaRepository.findByGoalIdAndProgram_Id(goalId, programId).map(this::toDomain);
     }
 
     private GoalProgramLink toDomain(GoalProgramLinkJpaEntity entity) {
         return new GoalProgramLink(
                 entity.getId(),
                 entity.getGoalId(),
-                entity.getProgramId(),
+                entity.getProgram().getId(),
                 entity.getSourceType(),
                 entity.getCreatedAt()
         );

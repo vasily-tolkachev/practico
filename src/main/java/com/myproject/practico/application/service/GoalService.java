@@ -72,7 +72,8 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
                 persistStatus(goalId, GoalResolutionStage.GENERATING, 55, "Generating goal-based program");
                 sleep(700);
                 ProgramResolutionResult resolved = programResolverUseCase.resolveForGoal(goal, "demo-user");
-                attachProgramToGoalUseCase.attach(goalId, resolved.program().programId(), resolved.sourceType());
+                Long programId = parseProgramId(resolved.program().programId());
+                attachProgramToGoalUseCase.attach(goalId, programId, resolved.sourceType());
                 persistStatus(goalId, GoalResolutionStage.COMPLETED, 100, "Goal-based program generated");
             } catch (Exception ex) {
                 persistStatus(goalId, GoalResolutionStage.FAILED, 100, "Resolution failed");
@@ -92,5 +93,16 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
 
     private void sleep(long millis) throws InterruptedException {
         Thread.sleep(millis);
+    }
+
+    private Long parseProgramId(String programId) {
+        if (programId == null || programId.isBlank()) {
+            throw new IllegalStateException("Program id is blank");
+        }
+        try {
+            return Long.parseLong(programId);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Program id must be numeric: " + programId, ex);
+        }
     }
 }

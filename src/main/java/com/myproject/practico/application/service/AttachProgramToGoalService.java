@@ -14,12 +14,12 @@ public class AttachProgramToGoalService implements AttachProgramToGoalUseCase {
     }
 
     @Override
-    public GoalProgramLink attach(Long goalId, String programId, GoalProgramSourceType sourceType) {
+    public GoalProgramLink attach(Long goalId, Long programId, GoalProgramSourceType sourceType) {
         if (goalId == null || goalId <= 0) {
             throw new IllegalArgumentException("goalId must be positive");
         }
-        if (programId == null || programId.isBlank()) {
-            throw new IllegalArgumentException("programId must not be blank");
+        if (programId == null || programId <= 0) {
+            throw new IllegalArgumentException("programId must be positive");
         }
         GoalProgramSourceType safeSourceType = sourceType == null ? GoalProgramSourceType.GENERATED : sourceType;
 

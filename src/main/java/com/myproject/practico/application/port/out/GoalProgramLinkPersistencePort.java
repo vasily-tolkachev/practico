@@ -6,9 +6,9 @@ import com.myproject.practico.domain.GoalProgramSourceType;
 import java.util.Optional;
 
 public interface GoalProgramLinkPersistencePort {
-    GoalProgramLink create(Long goalId, String programId, GoalProgramSourceType sourceType);
+    GoalProgramLink create(Long goalId, Long programId, GoalProgramSourceType sourceType);
 
     Optional<GoalProgramLink> findByGoalId(Long goalId);
 
-    Optional<GoalProgramLink> findByGoalIdAndProgramId(Long goalId, String programId);
+    Optional<GoalProgramLink> findByGoalIdAndProgramId(Long goalId, Long programId);
 }
