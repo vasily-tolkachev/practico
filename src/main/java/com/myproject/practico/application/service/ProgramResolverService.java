@@ -45,12 +45,13 @@ public class ProgramResolverService implements ProgramResolverUseCase {
         com.myproject.practico.domain.LearningProgram persistedProgram = learningProgramPersistencePort.create(
                 goalTitle + " Program",
                 "Generated from goal: " + goalTitle,
-                LearningProgramStatus.GENERATING,
+                LearningProgramStatus.CREATED,
                 LearningProgramOrigin.GOAL_BASED
         );
         Long programId = persistedProgram.id();
 
         try {
+            learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.GENERATING);
             GeneratedProgramStructure generated = aiCourseGeneratorPort.generateProgramStructure(
                     goalTitle,
                     goal == null ? "" : goal.description()
