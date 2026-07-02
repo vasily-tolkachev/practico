@@ -7,6 +7,7 @@ import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.AttachProgramToGoalUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
+import com.myproject.practico.application.port.in.GetGoalProgramUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ProgramResolverUseCase;
 import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
@@ -33,6 +34,7 @@ import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
 import com.myproject.practico.application.service.GoalService;
+import com.myproject.practico.application.service.GetGoalProgramService;
 import com.myproject.practico.application.service.AttachProgramToGoalService;
 import com.myproject.practico.application.service.ProgramResolverService;
 import com.myproject.practico.application.service.LearningEngine;
@@ -116,6 +118,19 @@ public class ApplicationWiringConfig {
                 programResolverUseCase,
                 attachProgramToGoalUseCase,
                 startLearningUseCase
+        );
+    }
+
+    @Bean
+    public GetGoalProgramUseCase getGoalProgramUseCase(
+            GoalPersistencePort goalPersistencePort,
+            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort,
+            ProgramResolverUseCase programResolverUseCase
+    ) {
+        return new GetGoalProgramService(
+                goalPersistencePort,
+                goalProgramLinkPersistencePort,
+                programResolverUseCase
         );
     }
 

@@ -2,10 +2,12 @@ package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
+import com.myproject.practico.application.port.in.GetGoalProgramUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.goal.GoalLearningStartResult;
+import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class GoalController {
     private final CreateGoalUseCase createGoalUseCase;
     private final ListGoalsUseCase listGoalsUseCase;
     private final GetGoalUseCase getGoalUseCase;
+    private final GetGoalProgramUseCase getGoalProgramUseCase;
     private final GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase;
     private final StartLearningFromGoalUseCase startLearningFromGoalUseCase;
 
@@ -32,12 +35,14 @@ public class GoalController {
             CreateGoalUseCase createGoalUseCase,
             ListGoalsUseCase listGoalsUseCase,
             GetGoalUseCase getGoalUseCase,
+            GetGoalProgramUseCase getGoalProgramUseCase,
             GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase,
             StartLearningFromGoalUseCase startLearningFromGoalUseCase
     ) {
         this.createGoalUseCase = createGoalUseCase;
         this.listGoalsUseCase = listGoalsUseCase;
         this.getGoalUseCase = getGoalUseCase;
+        this.getGoalProgramUseCase = getGoalProgramUseCase;
         this.getGoalResolutionStatusUseCase = getGoalResolutionStatusUseCase;
         this.startLearningFromGoalUseCase = startLearningFromGoalUseCase;
     }
@@ -72,6 +77,19 @@ public class GoalController {
             return ResponseEntity.badRequest().build();
         }
         return getGoalResolutionStatusUseCase.getByGoalId(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/program")
+    public ResponseEntity<LearningProgram> getGoalProgram(
+            @PathVariable("id") Long id,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String userId
+    ) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        return getGoalProgramUseCase.getByGoalId(id, userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
