@@ -22,19 +22,22 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
     private final ProgramResolverUseCase programResolverUseCase;
     private final AttachProgramToGoalUseCase attachProgramToGoalUseCase;
     private final StartLearningUseCase startLearningUseCase;
+    private final GoalRuntimeBindingService goalRuntimeBindingService;
 
     public StartLearningFromGoalService(
             GoalPersistencePort goalPersistencePort,
             GoalProgramLinkPersistencePort goalProgramLinkPersistencePort,
             ProgramResolverUseCase programResolverUseCase,
             AttachProgramToGoalUseCase attachProgramToGoalUseCase,
-            StartLearningUseCase startLearningUseCase
+            StartLearningUseCase startLearningUseCase,
+            GoalRuntimeBindingService goalRuntimeBindingService
     ) {
         this.goalPersistencePort = goalPersistencePort;
         this.goalProgramLinkPersistencePort = goalProgramLinkPersistencePort;
         this.programResolverUseCase = programResolverUseCase;
         this.attachProgramToGoalUseCase = attachProgramToGoalUseCase;
         this.startLearningUseCase = startLearningUseCase;
+        this.goalRuntimeBindingService = goalRuntimeBindingService;
     }
 
     @Override
@@ -56,6 +59,7 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
                     return attachProgramToGoalUseCase.attach(goalId, resolved.program().programId(), resolved.sourceType());
                 });
 
+        goalRuntimeBindingService.bind(runtimeUserId, goalId, goalProgramLink.programId());
         startLearningUseCase.start(runtimeUserId);
         return Optional.of(new GoalLearningStartResult(goalId, goalProgramLink.programId(), "READY"));
     }

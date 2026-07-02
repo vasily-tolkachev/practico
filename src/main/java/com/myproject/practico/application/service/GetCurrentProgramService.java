@@ -2,6 +2,7 @@ package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
+import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramConcept;
@@ -30,19 +31,42 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
     private final QuestionPersistencePort questionPersistencePort;
     private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
+    private final GoalRuntimeBindingService goalRuntimeBindingService;
+    private final GoalPersistencePort goalPersistencePort;
 
     public GetCurrentProgramService(
             QuestionPersistencePort questionPersistencePort,
             LearningSessionService learningSessionService,
-            GetQuestionUseCase getQuestionUseCase
+            GetQuestionUseCase getQuestionUseCase,
+            GoalRuntimeBindingService goalRuntimeBindingService,
+            GoalPersistencePort goalPersistencePort
     ) {
         this.questionPersistencePort = questionPersistencePort;
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
+        this.goalRuntimeBindingService = goalRuntimeBindingService;
+        this.goalPersistencePort = goalPersistencePort;
     }
 
     @Override
     public LearningProgram getCurrentProgram(String userId) {
+        Optional<GoalRuntimeBindingStore.GoalRuntimeBinding> binding = goalRuntimeBindingService.get(userId);
+        if (binding.isPresent()) {
+            Long goalId = binding.get().goalId();
+            String goalTitle = goalPersistencePort.findById(goalId)
+                    .map(goal -> goal.title() == null || goal.title().isBlank() ? "Goal" : goal.title().trim())
+                    .orElse("Goal");
+            return new LearningProgram(
+                    binding.get().programId(),
+                    goalId,
+                    ProgramOrigin.GOAL_BASED,
+                    goalTitle + " Program",
+                    goalTitle,
+                    List.of(),
+                    new ProgramProgress(0, 0)
+            );
+        }
+
         List<Question> questions = questionPersistencePort.findAll();
         if (questions.isEmpty()) {
             return new LearningProgram(
