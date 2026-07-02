@@ -4,8 +4,10 @@ import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
+import com.myproject.practico.application.port.in.ProgramResolverUseCase;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
+import com.myproject.practico.application.program.ProgramResolutionResult;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStage;
 import com.myproject.practico.domain.GoalResolutionStatus;
@@ -19,19 +21,22 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
 
     private final GoalPersistencePort goalPersistencePort;
     private final GoalResolutionStatusPort goalResolutionStatusPort;
+    private final ProgramResolverUseCase programResolverUseCase;
 
     public GoalService(
             GoalPersistencePort goalPersistencePort,
-            GoalResolutionStatusPort goalResolutionStatusPort
+            GoalResolutionStatusPort goalResolutionStatusPort,
+            ProgramResolverUseCase programResolverUseCase
     ) {
         this.goalPersistencePort = goalPersistencePort;
         this.goalResolutionStatusPort = goalResolutionStatusPort;
+        this.programResolverUseCase = programResolverUseCase;
     }
 
     @Override
     public Goal create(String title, String description) {
         Goal goal = goalPersistencePort.create(title, description);
-        startResolution(goal.id());
+        startResolution(goal);
         return goal;
     }
 
@@ -50,20 +55,20 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
         return goalResolutionStatusPort.findByGoalId(goalId);
     }
 
-    private void startResolution(Long goalId) {
-        if (goalId == null) {
+    private void startResolution(Goal goal) {
+        if (goal == null || goal.id() == null) {
             return;
         }
+        Long goalId = goal.id();
 
         persistStatus(goalId, GoalResolutionStage.QUEUED, 5, "Goal queued for course resolution");
         CompletableFuture.runAsync(() -> {
             try {
                 sleep(350);
-                persistStatus(goalId, GoalResolutionStage.SEARCHING_LIBRARY, 35, "Searching existing courses");
-                sleep(500);
-                persistStatus(goalId, GoalResolutionStage.GENERATING, 75, "Generating curriculum");
+                persistStatus(goalId, GoalResolutionStage.GENERATING, 55, "Generating goal-based program");
                 sleep(700);
-                persistStatus(goalId, GoalResolutionStage.COMPLETED, 100, "Course resolved");
+                ProgramResolutionResult ignored = programResolverUseCase.resolveForGoal(goal, "demo-user");
+                persistStatus(goalId, GoalResolutionStage.COMPLETED, 100, "Goal-based program generated");
             } catch (Exception ex) {
                 persistStatus(goalId, GoalResolutionStage.FAILED, 100, "Resolution failed");
             }

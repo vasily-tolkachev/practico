@@ -7,6 +7,7 @@ import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
+import com.myproject.practico.application.port.in.ProgramResolverUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
@@ -29,6 +30,7 @@ import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
 import com.myproject.practico.application.service.GoalService;
+import com.myproject.practico.application.service.ProgramResolverService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
@@ -51,9 +53,10 @@ public class ApplicationWiringConfig {
     @Bean
     public GoalService goalService(
             GoalPersistencePort goalPersistencePort,
-            GoalResolutionStatusPort goalResolutionStatusPort
+            GoalResolutionStatusPort goalResolutionStatusPort,
+            ProgramResolverUseCase programResolverUseCase
     ) {
-        return new GoalService(goalPersistencePort, goalResolutionStatusPort);
+        return new GoalService(goalPersistencePort, goalResolutionStatusPort, programResolverUseCase);
     }
 
     @Bean
@@ -74,6 +77,11 @@ public class ApplicationWiringConfig {
     @Bean
     public GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase(GoalService goalService) {
         return goalService;
+    }
+
+    @Bean
+    public ProgramResolverUseCase programResolverUseCase() {
+        return new ProgramResolverService();
     }
 
     @Bean

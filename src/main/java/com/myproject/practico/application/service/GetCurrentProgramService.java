@@ -48,7 +48,7 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
                     null,
-                    ProgramOrigin.LIBRARY,
+                    ProgramOrigin.GOAL_BASED,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -64,7 +64,7 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
                     null,
-                    ProgramOrigin.LIBRARY,
+                    ProgramOrigin.GOAL_BASED,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -81,7 +81,7 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
                     null,
-                    ProgramOrigin.LIBRARY,
+                    ProgramOrigin.GOAL_BASED,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -192,7 +192,7 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         return new LearningProgram(
                 "topic-" + (targetTopicId == null ? "unknown" : targetTopicId),
                 null,
-                ProgramOrigin.LIBRARY,
+                ProgramOrigin.GOAL_BASED,
                 topicName + " Program",
                 "Master " + topicName,
                 concepts,
