@@ -58,7 +58,9 @@ public class QuestionPersistenceAdapter implements QuestionPersistencePort {
                         entity.getMicroConcept().getName(),
                         entity.getMicroConcept().getSortOrder()
                 ),
-                entity.getQuestionType()
+                entity.getQuestionType(),
+                entity.getExpectedAnswer(),
+                entity.getExplanation()
         );
     }
 }

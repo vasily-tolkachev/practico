@@ -23,7 +23,9 @@ import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
+import com.myproject.practico.application.port.out.AiQuestionGeneratorPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.port.out.GeneratedQuestionPersistencePort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
@@ -32,6 +34,7 @@ import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.ProgramTreeReadPort;
 import com.myproject.practico.application.port.out.ProgramStructurePersistencePort;
+import com.myproject.practico.application.port.out.ProgramMicroConceptReadPort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.UserPersistencePort;
@@ -56,6 +59,7 @@ import com.myproject.practico.application.service.ContinueLearningService;
 import com.myproject.practico.application.service.LearningSessionStore;
 import com.myproject.practico.application.service.QuickCheckService;
 import com.myproject.practico.application.service.PracticeService;
+import com.myproject.practico.application.service.ProgramQuestionGenerationService;
 import com.myproject.practico.application.service.SubmitPracticeService;
 import com.myproject.practico.application.service.SubmitQuickCheckService;
 import com.myproject.practico.application.service.SubmitRetryService;
@@ -105,12 +109,27 @@ public class ApplicationWiringConfig {
     public ProgramResolverUseCase programResolverUseCase(
             LearningProgramPersistencePort learningProgramPersistencePort,
             AiCourseGeneratorPort aiCourseGeneratorPort,
-            ProgramStructurePersistencePort programStructurePersistencePort
+            ProgramStructurePersistencePort programStructurePersistencePort,
+            ProgramQuestionGenerationService programQuestionGenerationService
     ) {
         return new ProgramResolverService(
                 learningProgramPersistencePort,
                 aiCourseGeneratorPort,
-                programStructurePersistencePort
+                programStructurePersistencePort,
+                programQuestionGenerationService
+        );
+    }
+
+    @Bean
+    public ProgramQuestionGenerationService programQuestionGenerationService(
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            AiQuestionGeneratorPort aiQuestionGeneratorPort,
+            GeneratedQuestionPersistencePort generatedQuestionPersistencePort
+    ) {
+        return new ProgramQuestionGenerationService(
+                programMicroConceptReadPort,
+                aiQuestionGeneratorPort,
+                generatedQuestionPersistencePort
         );
     }
 

@@ -38,4 +38,8 @@ public class QuestionJpaEntity {
 
     @Enumerated(EnumType.STRING)
     private QuestionType questionType;
+
+    private String expectedAnswer;
+
+    private String explanation;
 }

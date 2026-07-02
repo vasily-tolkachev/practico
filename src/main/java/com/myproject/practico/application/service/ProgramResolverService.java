@@ -26,15 +26,18 @@ public class ProgramResolverService implements ProgramResolverUseCase {
     private final LearningProgramPersistencePort learningProgramPersistencePort;
     private final AiCourseGeneratorPort aiCourseGeneratorPort;
     private final ProgramStructurePersistencePort programStructurePersistencePort;
+    private final ProgramQuestionGenerationService programQuestionGenerationService;
 
     public ProgramResolverService(
             LearningProgramPersistencePort learningProgramPersistencePort,
             AiCourseGeneratorPort aiCourseGeneratorPort,
-            ProgramStructurePersistencePort programStructurePersistencePort
+            ProgramStructurePersistencePort programStructurePersistencePort,
+            ProgramQuestionGenerationService programQuestionGenerationService
     ) {
         this.learningProgramPersistencePort = learningProgramPersistencePort;
         this.aiCourseGeneratorPort = aiCourseGeneratorPort;
         this.programStructurePersistencePort = programStructurePersistencePort;
+        this.programQuestionGenerationService = programQuestionGenerationService;
     }
 
     @Override
@@ -61,6 +64,7 @@ public class ProgramResolverService implements ProgramResolverUseCase {
                 throw new IllegalStateException("Generated structure is empty");
             }
             programStructurePersistencePort.persist(programId, validated);
+            programQuestionGenerationService.generateForProgram(programId, goalTitle);
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.READY);
         } catch (Exception ex) {
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.FAILED);

@@ -6,5 +6,7 @@ public record Question(
         Concept concept,
         Difficulty difficulty,
         MicroConcept microConcept,
-        QuestionType questionType
+        QuestionType questionType,
+        String expectedAnswer,
+        String explanation
 ) {}
