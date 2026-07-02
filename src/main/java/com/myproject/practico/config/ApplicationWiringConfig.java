@@ -25,6 +25,7 @@ import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
 import com.myproject.practico.application.port.out.AiQuestionGeneratorPort;
 import com.myproject.practico.application.port.out.EvaluationPort;
+import com.myproject.practico.application.port.out.GenerationMetricsPort;
 import com.myproject.practico.application.port.out.GeneratedQuestionPersistencePort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
@@ -110,13 +111,15 @@ public class ApplicationWiringConfig {
             LearningProgramPersistencePort learningProgramPersistencePort,
             AiCourseGeneratorPort aiCourseGeneratorPort,
             ProgramStructurePersistencePort programStructurePersistencePort,
-            ProgramQuestionGenerationService programQuestionGenerationService
+            ProgramQuestionGenerationService programQuestionGenerationService,
+            GenerationMetricsPort generationMetricsPort
     ) {
         return new ProgramResolverService(
                 learningProgramPersistencePort,
                 aiCourseGeneratorPort,
                 programStructurePersistencePort,
-                programQuestionGenerationService
+                programQuestionGenerationService,
+                generationMetricsPort
         );
     }
 
@@ -124,12 +127,14 @@ public class ApplicationWiringConfig {
     public ProgramQuestionGenerationService programQuestionGenerationService(
             ProgramMicroConceptReadPort programMicroConceptReadPort,
             AiQuestionGeneratorPort aiQuestionGeneratorPort,
-            GeneratedQuestionPersistencePort generatedQuestionPersistencePort
+            GeneratedQuestionPersistencePort generatedQuestionPersistencePort,
+            GenerationMetricsPort generationMetricsPort
     ) {
         return new ProgramQuestionGenerationService(
                 programMicroConceptReadPort,
                 aiQuestionGeneratorPort,
-                generatedQuestionPersistencePort
+                generatedQuestionPersistencePort,
+                generationMetricsPort
         );
     }
 

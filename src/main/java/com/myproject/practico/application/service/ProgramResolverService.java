@@ -2,11 +2,14 @@ package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.ProgramResolverUseCase;
 import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
+import com.myproject.practico.application.port.out.GenerationMetricsPort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.ProgramStructurePersistencePort;
 import com.myproject.practico.application.program.GeneratedConceptStructure;
 import com.myproject.practico.application.program.GeneratedProgramStructure;
+import com.myproject.practico.application.program.GeneratedProgramStructureResult;
 import com.myproject.practico.application.program.GeneratedTopicStructure;
+import com.myproject.practico.application.program.GenerationStage;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramOrigin;
 import com.myproject.practico.application.program.ProgramProgress;
@@ -27,17 +30,20 @@ public class ProgramResolverService implements ProgramResolverUseCase {
     private final AiCourseGeneratorPort aiCourseGeneratorPort;
     private final ProgramStructurePersistencePort programStructurePersistencePort;
     private final ProgramQuestionGenerationService programQuestionGenerationService;
+    private final GenerationMetricsPort generationMetricsPort;
 
     public ProgramResolverService(
             LearningProgramPersistencePort learningProgramPersistencePort,
             AiCourseGeneratorPort aiCourseGeneratorPort,
             ProgramStructurePersistencePort programStructurePersistencePort,
-            ProgramQuestionGenerationService programQuestionGenerationService
+            ProgramQuestionGenerationService programQuestionGenerationService,
+            GenerationMetricsPort generationMetricsPort
     ) {
         this.learningProgramPersistencePort = learningProgramPersistencePort;
         this.aiCourseGeneratorPort = aiCourseGeneratorPort;
         this.programStructurePersistencePort = programStructurePersistencePort;
         this.programQuestionGenerationService = programQuestionGenerationService;
+        this.generationMetricsPort = generationMetricsPort;
     }
 
     @Override
@@ -55,15 +61,54 @@ public class ProgramResolverService implements ProgramResolverUseCase {
 
         try {
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.GENERATING);
-            GeneratedProgramStructure generated = aiCourseGeneratorPort.generateProgramStructure(
-                    goalTitle,
-                    goal == null ? "" : goal.description()
+            GeneratedProgramStructureResult generatedResult;
+            long structureStartedAt = System.currentTimeMillis();
+            try {
+                generatedResult = aiCourseGeneratorPort.generateProgramStructure(
+                        goalTitle,
+                        goal == null ? "" : goal.description()
+                );
+            } catch (Exception ex) {
+                generationMetricsPort.recordFailure(
+                        GenerationStage.STRUCTURE_GENERATION,
+                        System.currentTimeMillis() - structureStartedAt,
+                        null,
+                        null
+                );
+                throw ex;
+            }
+            GeneratedProgramStructure generated = generatedResult.structure();
+            generationMetricsPort.recordSuccess(
+                    GenerationStage.STRUCTURE_GENERATION,
+                    System.currentTimeMillis() - structureStartedAt,
+                    generatedResult.totalTokens(),
+                    generatedResult.estimatedCostUsd()
             );
+
             GeneratedProgramStructure validated = validate(generated);
             if (validated.topics().isEmpty()) {
                 throw new IllegalStateException("Generated structure is empty");
             }
-            programStructurePersistencePort.persist(programId, validated);
+
+            long persistStartedAt = System.currentTimeMillis();
+            try {
+                programStructurePersistencePort.persist(programId, validated);
+            } catch (Exception ex) {
+                generationMetricsPort.recordFailure(
+                        GenerationStage.STRUCTURE_PERSISTENCE,
+                        System.currentTimeMillis() - persistStartedAt,
+                        null,
+                        null
+                );
+                throw ex;
+            }
+            generationMetricsPort.recordSuccess(
+                    GenerationStage.STRUCTURE_PERSISTENCE,
+                    System.currentTimeMillis() - persistStartedAt,
+                    null,
+                    null
+            );
+
             programQuestionGenerationService.generateForProgram(programId, goalTitle);
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.READY);
         } catch (Exception ex) {

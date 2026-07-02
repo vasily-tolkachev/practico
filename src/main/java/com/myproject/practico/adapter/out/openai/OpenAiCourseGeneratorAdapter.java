@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
 import com.myproject.practico.application.program.GeneratedConceptStructure;
 import com.myproject.practico.application.program.GeneratedProgramStructure;
+import com.myproject.practico.application.program.GeneratedProgramStructureResult;
 import com.myproject.practico.application.program.GeneratedTopicStructure;
 import com.myproject.practico.config.OpenAiProperties;
 import lombok.RequiredArgsConstructor;
@@ -60,10 +61,10 @@ public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
     private final OpenAiProperties properties;
 
     @Override
-    public GeneratedProgramStructure generateProgramStructure(String goalTitle, String goalDescription) {
+    public GeneratedProgramStructureResult generateProgramStructure(String goalTitle, String goalDescription) {
         String apiKey = properties.apiKey();
         if (apiKey == null || apiKey.isBlank()) {
-            return fallback(goalTitle);
+            return new GeneratedProgramStructureResult(fallback(goalTitle), null, null);
         }
 
         String model = properties.model() == null || properties.model().isBlank()
@@ -89,19 +90,23 @@ public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
                     .retrieve()
                     .body(ChatCompletionResponse.class);
             if (response == null || response.choices() == null || response.choices().length == 0) {
-                return fallback(goalTitle);
+                return new GeneratedProgramStructureResult(fallback(goalTitle), null, null);
             }
             String content = response.choices()[0].message().content();
             if (content == null || content.isBlank()) {
-                return fallback(goalTitle);
+                return new GeneratedProgramStructureResult(fallback(goalTitle), null, null);
             }
-            return parse(content, goalTitle);
+            return new GeneratedProgramStructureResult(
+                    parse(content, goalTitle),
+                    response.usage() == null ? null : response.usage().total_tokens(),
+                    null
+            );
         } catch (RestClientResponseException ex) {
             log.error("Program generation HTTP error status={} body={}", ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
-            return fallback(goalTitle);
+            return new GeneratedProgramStructureResult(fallback(goalTitle), null, null);
         } catch (Exception ex) {
             log.error("Program generation failed", ex);
-            return fallback(goalTitle);
+            return new GeneratedProgramStructureResult(fallback(goalTitle), null, null);
         }
     }
 
@@ -193,12 +198,18 @@ public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
     }
 
     private record ChatCompletionResponse(
-            Choice[] choices
+            Choice[] choices,
+            Usage usage
     ) {
     }
 
     private record Choice(
             Message message
+    ) {
+    }
+
+    private record Usage(
+            Long total_tokens
     ) {
     }
 }

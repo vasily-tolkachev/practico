@@ -3,6 +3,7 @@ package com.myproject.practico.adapter.out.openai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.port.out.AiQuestionGeneratorPort;
+import com.myproject.practico.application.program.GeneratedQuestionBatch;
 import com.myproject.practico.application.program.GeneratedQuestion;
 import com.myproject.practico.config.OpenAiProperties;
 import com.myproject.practico.domain.Difficulty;
@@ -46,10 +47,10 @@ public class OpenAiQuestionGeneratorAdapter implements AiQuestionGeneratorPort {
     private final OpenAiProperties properties;
 
     @Override
-    public List<GeneratedQuestion> generateQuestions(String goalTitle, String topicName, String conceptName, String microConceptName) {
+    public GeneratedQuestionBatch generateQuestions(String goalTitle, String topicName, String conceptName, String microConceptName) {
         String apiKey = properties.apiKey();
         if (apiKey == null || apiKey.isBlank()) {
-            return fallback(microConceptName);
+            return new GeneratedQuestionBatch(fallback(microConceptName), null, null);
         }
         String model = properties.model() == null || properties.model().isBlank() ? "gpt-5-mini" : properties.model();
         RestClient restClient = RestClient.builder()
@@ -72,16 +73,20 @@ public class OpenAiQuestionGeneratorAdapter implements AiQuestionGeneratorPort {
                     .retrieve()
                     .body(ChatCompletionResponse.class);
             if (response == null || response.choices() == null || response.choices().length == 0) {
-                return fallback(microConceptName);
+                return new GeneratedQuestionBatch(fallback(microConceptName), null, null);
             }
             String content = response.choices()[0].message().content();
             if (content == null || content.isBlank()) {
-                return fallback(microConceptName);
+                return new GeneratedQuestionBatch(fallback(microConceptName), null, null);
             }
-            return parse(content, microConceptName);
+            return new GeneratedQuestionBatch(
+                    parse(content, microConceptName),
+                    response.usage() == null ? null : response.usage().total_tokens(),
+                    null
+            );
         } catch (Exception ex) {
             log.error("Question generation failed", ex);
-            return fallback(microConceptName);
+            return new GeneratedQuestionBatch(fallback(microConceptName), null, null);
         }
     }
 
@@ -169,12 +174,18 @@ public class OpenAiQuestionGeneratorAdapter implements AiQuestionGeneratorPort {
     }
 
     private record ChatCompletionResponse(
-            Choice[] choices
+            Choice[] choices,
+            Usage usage
     ) {
     }
 
     private record Choice(
             Message message
+    ) {
+    }
+
+    private record Usage(
+            Long total_tokens
     ) {
     }
 }

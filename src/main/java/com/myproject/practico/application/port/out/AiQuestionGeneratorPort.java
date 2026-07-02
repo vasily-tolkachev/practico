@@ -1,12 +1,10 @@
 package com.myproject.practico.application.port.out;
 
-import com.myproject.practico.application.program.GeneratedQuestion;
-
-import java.util.List;
+import com.myproject.practico.application.program.GeneratedQuestionBatch;
 
 public interface AiQuestionGeneratorPort {
 
-    List<GeneratedQuestion> generateQuestions(
+    GeneratedQuestionBatch generateQuestions(
             String goalTitle,
             String topicName,
             String conceptName,
