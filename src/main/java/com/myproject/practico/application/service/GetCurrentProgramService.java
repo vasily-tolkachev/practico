@@ -6,6 +6,7 @@ import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramConcept;
 import com.myproject.practico.application.program.ProgramMicroConcept;
+import com.myproject.practico.application.program.ProgramOrigin;
 import com.myproject.practico.application.program.ProgramProgress;
 import com.myproject.practico.domain.Concept;
 import com.myproject.practico.domain.Question;
@@ -46,6 +47,8 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         if (questions.isEmpty()) {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
+                    null,
+                    ProgramOrigin.LIBRARY,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -60,6 +63,8 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         if (questionsByTopic.isEmpty()) {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
+                    null,
+                    ProgramOrigin.LIBRARY,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -75,6 +80,8 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         if (topicQuestions == null || topicQuestions.isEmpty()) {
             return new LearningProgram(
                     EMPTY_PROGRAM_ID,
+                    null,
+                    ProgramOrigin.LIBRARY,
                     EMPTY_PROGRAM_TITLE,
                     EMPTY_GOAL_TITLE,
                     List.of(),
@@ -184,6 +191,8 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
 
         return new LearningProgram(
                 "topic-" + (targetTopicId == null ? "unknown" : targetTopicId),
+                null,
+                ProgramOrigin.LIBRARY,
                 topicName + " Program",
                 "Master " + topicName,
                 concepts,

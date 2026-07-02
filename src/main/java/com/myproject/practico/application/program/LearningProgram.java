@@ -4,6 +4,8 @@ import java.util.List;
 
 public record LearningProgram(
         String programId,
+        Long goalId,
+        ProgramOrigin origin,
         String title,
         String goalTitle,
         List<ProgramConcept> concepts,
