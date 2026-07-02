@@ -10,4 +10,6 @@ public interface LearningProgramTopicJpaRepository extends JpaRepository<Learnin
     List<LearningProgramTopicJpaEntity> findByProgram_IdOrderByOrderIndexAsc(Long programId);
 
     boolean existsByProgram_IdAndTopic_Id(Long programId, Long topicId);
+
+    void deleteByProgram_Id(Long programId);
 }

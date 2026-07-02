@@ -2,7 +2,10 @@ package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
+import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
+import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
+import com.myproject.practico.application.port.in.GetProgramTreeUseCase;
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.AttachProgramToGoalUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
@@ -27,6 +30,7 @@ import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.port.out.ProgramTreeReadPort;
 import com.myproject.practico.application.port.out.ProgramStructurePersistencePort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
@@ -37,6 +41,7 @@ import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
+import com.myproject.practico.application.service.GetProgramQueryService;
 import com.myproject.practico.application.service.GoalService;
 import com.myproject.practico.application.service.GetGoalProgramService;
 import com.myproject.practico.application.service.AttachProgramToGoalService;
@@ -168,6 +173,29 @@ public class ApplicationWiringConfig {
                 runtimeContextStore,
                 goalPersistencePort
         );
+    }
+
+    @Bean
+    public GetProgramQueryService getProgramQueryService(
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramTreeReadPort programTreeReadPort
+    ) {
+        return new GetProgramQueryService(learningProgramPersistencePort, programTreeReadPort);
+    }
+
+    @Bean
+    public GetProgramByIdUseCase getProgramByIdUseCase(GetProgramQueryService getProgramQueryService) {
+        return getProgramQueryService;
+    }
+
+    @Bean
+    public GetProgramTreeUseCase getProgramTreeUseCase(GetProgramQueryService getProgramQueryService) {
+        return getProgramQueryService;
+    }
+
+    @Bean
+    public GetProgramStatusUseCase getProgramStatusUseCase(GetProgramQueryService getProgramQueryService) {
+        return getProgramQueryService;
     }
 
     @Bean
