@@ -9,6 +9,7 @@ import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ProgramResolverUseCase;
+import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
@@ -38,6 +39,7 @@ import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
 import com.myproject.practico.application.service.StartLearningService;
+import com.myproject.practico.application.service.StartLearningFromGoalService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.ContinueLearningService;
 import com.myproject.practico.application.service.LearningSessionStore;
@@ -98,6 +100,23 @@ public class ApplicationWiringConfig {
             GoalProgramLinkPersistencePort goalProgramLinkPersistencePort
     ) {
         return new AttachProgramToGoalService(goalProgramLinkPersistencePort);
+    }
+
+    @Bean
+    public StartLearningFromGoalUseCase startLearningFromGoalUseCase(
+            GoalPersistencePort goalPersistencePort,
+            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort,
+            ProgramResolverUseCase programResolverUseCase,
+            AttachProgramToGoalUseCase attachProgramToGoalUseCase,
+            StartLearningUseCase startLearningUseCase
+    ) {
+        return new StartLearningFromGoalService(
+                goalPersistencePort,
+                goalProgramLinkPersistencePort,
+                programResolverUseCase,
+                attachProgramToGoalUseCase,
+                startLearningUseCase
+        );
     }
 
     @Bean

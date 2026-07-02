@@ -4,6 +4,8 @@ import com.myproject.practico.application.port.in.CreateGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
+import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
+import com.myproject.practico.application.goal.GoalLearningStartResult;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,17 +26,20 @@ public class GoalController {
     private final ListGoalsUseCase listGoalsUseCase;
     private final GetGoalUseCase getGoalUseCase;
     private final GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase;
+    private final StartLearningFromGoalUseCase startLearningFromGoalUseCase;
 
     public GoalController(
             CreateGoalUseCase createGoalUseCase,
             ListGoalsUseCase listGoalsUseCase,
             GetGoalUseCase getGoalUseCase,
-            GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase
+            GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase,
+            StartLearningFromGoalUseCase startLearningFromGoalUseCase
     ) {
         this.createGoalUseCase = createGoalUseCase;
         this.listGoalsUseCase = listGoalsUseCase;
         this.getGoalUseCase = getGoalUseCase;
         this.getGoalResolutionStatusUseCase = getGoalResolutionStatusUseCase;
+        this.startLearningFromGoalUseCase = startLearningFromGoalUseCase;
     }
 
     @PostMapping
@@ -71,6 +76,20 @@ public class GoalController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/start")
+    public ResponseEntity<GoalLearningStartResult> startFromGoal(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) StartGoalRequest request
+    ) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        String userId = request == null ? null : request.userId();
+        return startLearningFromGoalUseCase.start(id, userId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -78,6 +97,11 @@ public class GoalController {
     public record CreateGoalRequest(
             String title,
             String description
+    ) {
+    }
+
+    public record StartGoalRequest(
+            String userId
     ) {
     }
 }
