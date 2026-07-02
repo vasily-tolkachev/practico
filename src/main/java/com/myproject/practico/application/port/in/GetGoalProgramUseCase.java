@@ -5,5 +5,5 @@ import com.myproject.practico.application.program.LearningProgram;
 import java.util.Optional;
 
 public interface GetGoalProgramUseCase {
-    Optional<LearningProgram> getByGoalId(Long goalId, String userId);
+    Optional<LearningProgram> getByGoalId(Long goalId);
 }

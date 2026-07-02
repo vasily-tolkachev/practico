@@ -24,8 +24,7 @@ public class AttachProgramToGoalService implements AttachProgramToGoalUseCase {
         GoalProgramSourceType safeSourceType = sourceType == null ? GoalProgramSourceType.GENERATED : sourceType;
 
         return goalProgramLinkPersistencePort.findByGoalId(goalId)
-                .filter(existing -> programId.equals(existing.programId()))
-                .or(() -> goalProgramLinkPersistencePort.findByGoalIdAndProgramId(goalId, programId))
+                // Sprint 4 rule: one active program per goal. If link exists, keep it stable.
                 .orElseGet(() -> goalProgramLinkPersistencePort.create(goalId, programId, safeSourceType));
     }
 }

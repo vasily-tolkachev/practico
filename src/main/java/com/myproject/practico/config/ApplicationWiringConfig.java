@@ -124,13 +124,11 @@ public class ApplicationWiringConfig {
     @Bean
     public GetGoalProgramUseCase getGoalProgramUseCase(
             GoalPersistencePort goalPersistencePort,
-            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort,
-            ProgramResolverUseCase programResolverUseCase
+            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort
     ) {
         return new GetGoalProgramService(
                 goalPersistencePort,
-                goalProgramLinkPersistencePort,
-                programResolverUseCase
+                goalProgramLinkPersistencePort
         );
     }
 

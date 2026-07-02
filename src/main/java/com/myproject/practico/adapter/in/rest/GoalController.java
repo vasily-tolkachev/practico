@@ -52,8 +52,9 @@ public class GoalController {
         if (request == null || isBlank(request.title())) {
             return ResponseEntity.badRequest().build();
         }
-        String description = isBlank(request.description()) ? request.title() : request.description();
-        return ResponseEntity.ok(createGoalUseCase.create(request.title().trim(), description.trim()));
+        String title = request.title().trim();
+        String description = isBlank(request.description()) ? title : request.description().trim();
+        return ResponseEntity.ok(createGoalUseCase.create(title, description));
     }
 
     @GetMapping
@@ -63,7 +64,7 @@ public class GoalController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Goal> get(@PathVariable("id") Long id) {
-        if (id == null || id <= 0) {
+        if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
         return getGoalUseCase.getById(id)
@@ -73,7 +74,7 @@ public class GoalController {
 
     @GetMapping("/{id}/resolution-status")
     public ResponseEntity<GoalResolutionStatus> getResolutionStatus(@PathVariable("id") Long id) {
-        if (id == null || id <= 0) {
+        if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
         return getGoalResolutionStatusUseCase.getByGoalId(id)
@@ -82,14 +83,11 @@ public class GoalController {
     }
 
     @GetMapping("/{id}/program")
-    public ResponseEntity<LearningProgram> getGoalProgram(
-            @PathVariable("id") Long id,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) String userId
-    ) {
-        if (id == null || id <= 0) {
+    public ResponseEntity<LearningProgram> getGoalProgram(@PathVariable("id") Long id) {
+        if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
-        return getGoalProgramUseCase.getByGoalId(id, userId)
+        return getGoalProgramUseCase.getByGoalId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -99,13 +97,20 @@ public class GoalController {
             @PathVariable("id") Long id,
             @RequestBody(required = false) StartGoalRequest request
     ) {
-        if (id == null || id <= 0) {
+        if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
         String userId = request == null ? null : request.userId();
+        if (userId != null && userId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         return startLearningFromGoalUseCase.start(id, userId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private boolean isValidId(Long id) {
+        return id != null && id > 0;
     }
 
     private boolean isBlank(String value) {
