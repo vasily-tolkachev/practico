@@ -1,11 +1,13 @@
 package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
+import com.myproject.practico.application.port.in.GetGenerationMetricsUseCase;
 import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramTreeUseCase;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramGenerationStatus;
+import com.myproject.practico.application.program.GenerationStageMetrics;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,17 +29,20 @@ public class LearningProgramController {
     private final GetProgramByIdUseCase getProgramByIdUseCase;
     private final GetProgramTreeUseCase getProgramTreeUseCase;
     private final GetProgramStatusUseCase getProgramStatusUseCase;
+    private final GetGenerationMetricsUseCase getGenerationMetricsUseCase;
 
     public LearningProgramController(
             GetCurrentProgramUseCase getCurrentProgramUseCase,
             GetProgramByIdUseCase getProgramByIdUseCase,
             GetProgramTreeUseCase getProgramTreeUseCase,
-            GetProgramStatusUseCase getProgramStatusUseCase
+            GetProgramStatusUseCase getProgramStatusUseCase,
+            GetGenerationMetricsUseCase getGenerationMetricsUseCase
     ) {
         this.getCurrentProgramUseCase = getCurrentProgramUseCase;
         this.getProgramByIdUseCase = getProgramByIdUseCase;
         this.getProgramTreeUseCase = getProgramTreeUseCase;
         this.getProgramStatusUseCase = getProgramStatusUseCase;
+        this.getGenerationMetricsUseCase = getGenerationMetricsUseCase;
     }
 
     @Operation(summary = "Current learning program", description = "Returns curriculum structure for the current user context.")
@@ -85,6 +90,11 @@ public class LearningProgramController {
         return getProgramStatusUseCase.getStatus(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @GetMapping("/generation-metrics")
+    public ResponseEntity<java.util.List<GenerationStageMetrics>> generationMetrics() {
+        return ResponseEntity.ok(getGenerationMetricsUseCase.getMetrics());
     }
 
     private boolean isValidId(Long id) {

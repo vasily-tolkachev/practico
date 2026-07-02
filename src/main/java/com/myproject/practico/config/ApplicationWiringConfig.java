@@ -2,6 +2,7 @@ package com.myproject.practico.config;
 
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
+import com.myproject.practico.application.port.in.GetGenerationMetricsUseCase;
 import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
@@ -45,6 +46,7 @@ import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
+import com.myproject.practico.application.service.GenerationMetricsQueryService;
 import com.myproject.practico.application.service.GetProgramQueryService;
 import com.myproject.practico.application.service.GoalService;
 import com.myproject.practico.application.service.GetGoalProgramService;
@@ -224,6 +226,20 @@ public class ApplicationWiringConfig {
     @Bean
     public GetProgramStatusUseCase getProgramStatusUseCase(GetProgramQueryService getProgramQueryService) {
         return getProgramQueryService;
+    }
+
+    @Bean
+    public GenerationMetricsQueryService generationMetricsQueryService(
+            GenerationMetricsPort generationMetricsPort
+    ) {
+        return new GenerationMetricsQueryService(generationMetricsPort);
+    }
+
+    @Bean
+    public GetGenerationMetricsUseCase getGenerationMetricsUseCase(
+            GenerationMetricsQueryService generationMetricsQueryService
+    ) {
+        return generationMetricsQueryService;
     }
 
     @Bean
