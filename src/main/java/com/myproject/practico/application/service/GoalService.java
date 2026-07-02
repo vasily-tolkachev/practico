@@ -1,6 +1,7 @@
 package com.myproject.practico.application.service;
 
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
+import com.myproject.practico.application.port.in.AttachProgramToGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
@@ -22,15 +23,18 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
     private final GoalPersistencePort goalPersistencePort;
     private final GoalResolutionStatusPort goalResolutionStatusPort;
     private final ProgramResolverUseCase programResolverUseCase;
+    private final AttachProgramToGoalUseCase attachProgramToGoalUseCase;
 
     public GoalService(
             GoalPersistencePort goalPersistencePort,
             GoalResolutionStatusPort goalResolutionStatusPort,
-            ProgramResolverUseCase programResolverUseCase
+            ProgramResolverUseCase programResolverUseCase,
+            AttachProgramToGoalUseCase attachProgramToGoalUseCase
     ) {
         this.goalPersistencePort = goalPersistencePort;
         this.goalResolutionStatusPort = goalResolutionStatusPort;
         this.programResolverUseCase = programResolverUseCase;
+        this.attachProgramToGoalUseCase = attachProgramToGoalUseCase;
     }
 
     @Override
@@ -67,7 +71,8 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
                 sleep(350);
                 persistStatus(goalId, GoalResolutionStage.GENERATING, 55, "Generating goal-based program");
                 sleep(700);
-                ProgramResolutionResult ignored = programResolverUseCase.resolveForGoal(goal, "demo-user");
+                ProgramResolutionResult resolved = programResolverUseCase.resolveForGoal(goal, "demo-user");
+                attachProgramToGoalUseCase.attach(goalId, resolved.program().programId(), resolved.sourceType());
                 persistStatus(goalId, GoalResolutionStage.COMPLETED, 100, "Goal-based program generated");
             } catch (Exception ex) {
                 persistStatus(goalId, GoalResolutionStage.FAILED, 100, "Resolution failed");

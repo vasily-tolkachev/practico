@@ -4,6 +4,7 @@ import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.CreateGoalUseCase;
+import com.myproject.practico.application.port.in.AttachProgramToGoalUseCase;
 import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.GetGoalUseCase;
 import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase;
@@ -18,6 +19,7 @@ import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.EvaluationPort;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
+import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
@@ -30,6 +32,7 @@ import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
 import com.myproject.practico.application.service.GoalService;
+import com.myproject.practico.application.service.AttachProgramToGoalService;
 import com.myproject.practico.application.service.ProgramResolverService;
 import com.myproject.practico.application.service.LearningEngine;
 import com.myproject.practico.application.service.LearningSessionService;
@@ -54,9 +57,15 @@ public class ApplicationWiringConfig {
     public GoalService goalService(
             GoalPersistencePort goalPersistencePort,
             GoalResolutionStatusPort goalResolutionStatusPort,
-            ProgramResolverUseCase programResolverUseCase
+            ProgramResolverUseCase programResolverUseCase,
+            AttachProgramToGoalUseCase attachProgramToGoalUseCase
     ) {
-        return new GoalService(goalPersistencePort, goalResolutionStatusPort, programResolverUseCase);
+        return new GoalService(
+                goalPersistencePort,
+                goalResolutionStatusPort,
+                programResolverUseCase,
+                attachProgramToGoalUseCase
+        );
     }
 
     @Bean
@@ -82,6 +91,13 @@ public class ApplicationWiringConfig {
     @Bean
     public ProgramResolverUseCase programResolverUseCase() {
         return new ProgramResolverService();
+    }
+
+    @Bean
+    public AttachProgramToGoalUseCase attachProgramToGoalUseCase(
+            GoalProgramLinkPersistencePort goalProgramLinkPersistencePort
+    ) {
+        return new AttachProgramToGoalService(goalProgramLinkPersistencePort);
     }
 
     @Bean
