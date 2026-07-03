@@ -10,9 +10,6 @@ import java.util.Set;
 
 public class StartLearningService implements StartLearningUseCase {
 
-    private static final String DEFAULT_CONCEPT_NAME = "Звезды";
-    private static final String DEFAULT_TOPIC_NAME = "Космос";
-
     private final GetQuestionUseCase getQuestionUseCase;
     private final LearningSessionService learningSessionService;
     private final LearningStateAssembler learningStateAssembler;
@@ -30,9 +27,7 @@ public class StartLearningService implements StartLearningUseCase {
     @Override
     public LearningState start(String userId) {
         Question question = getQuestionUseCase
-                .getFirstFromConceptName(DEFAULT_CONCEPT_NAME, learningSessionService.firstDifficulty(), Set.of())
-                .or(() -> getQuestionUseCase.getFirstFromTopic(DEFAULT_TOPIC_NAME, learningSessionService.firstDifficulty(), Set.of()))
-                .or(() -> getQuestionUseCase.getNextFromNextConcept(null, learningSessionService.firstDifficulty(), Set.of()))
+                .getNextFromNextConcept(null, learningSessionService.firstDifficulty(), Set.of())
                 .orElse(null);
 
         if (question == null) {
