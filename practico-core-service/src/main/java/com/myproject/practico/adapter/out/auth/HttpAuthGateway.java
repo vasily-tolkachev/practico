@@ -27,7 +27,7 @@ public class HttpAuthGateway implements AuthGateway {
                 .uri("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                        "provider", command.provider().name(),
+                        "provider", command.provider(),
                         "providerToken", command.providerToken()
                 ))
                 .retrieve()
