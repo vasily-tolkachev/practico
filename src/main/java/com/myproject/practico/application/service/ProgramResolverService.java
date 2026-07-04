@@ -109,7 +109,6 @@ public class ProgramResolverService implements ProgramResolverUseCase {
                     null
             );
 
-            programQuestionGenerationService.generateForProgram(programId, goalTitle);
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.READY);
         } catch (Exception ex) {
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.FAILED);

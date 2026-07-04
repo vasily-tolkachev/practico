@@ -56,6 +56,7 @@ public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
             - each concept 3-6 microConcepts
             - no questions, no explanations
             - avoid duplicates
+            - respond in russian
             """;
 
     private final OpenAiProperties properties;
