@@ -29,3 +29,9 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui
+
+auth:
+  providers:
+    google:
+      enabled: ${AUTH_PROVIDERS_GOOGLE_ENABLED:true}
+      client-id: ${AUTH_PROVIDERS_GOOGLE_CLIENT_ID:1234567890}
