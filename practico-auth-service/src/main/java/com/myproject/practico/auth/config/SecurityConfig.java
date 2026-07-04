@@ -1,7 +1,7 @@
 package com.myproject.practico.auth.config;
 
-import com.myproject.practico.auth.adapter.in.security.JwtAuthenticationEntryPoint;
-import com.myproject.practico.auth.adapter.in.security.JwtAuthenticationFilter;
+import com.myproject.practico.auth.adapter.in.auth.JwtAuthenticationEntryPoint;
+import com.myproject.practico.auth.adapter.in.auth.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;

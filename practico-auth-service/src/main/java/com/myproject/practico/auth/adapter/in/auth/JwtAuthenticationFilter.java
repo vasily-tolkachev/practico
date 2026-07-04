@@ -1,4 +1,4 @@
-package com.myproject.practico.auth.adapter.in.security;
+package com.myproject.practico.auth.adapter.in.auth;
 
 import com.myproject.practico.auth.adapter.out.security.JwtKeyMaterial;
 import io.jsonwebtoken.Claims;
