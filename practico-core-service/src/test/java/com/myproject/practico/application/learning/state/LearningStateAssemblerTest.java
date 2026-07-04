@@ -27,7 +27,7 @@ class LearningStateAssemblerTest {
     void shouldBuildQuestionActivityState() {
         Topic topic = new Topic(1L, "Space");
         Concept concept = new Concept(2L, topic, "Stars");
-        Question question = new Question(11L, "What is a star?", concept, Difficulty.EASY, null, QuestionType.DEFINITION);
+        Question question = new Question(11L, "What is a star?", concept, Difficulty.EASY, null, QuestionType.DEFINITION, null, null);
 
         LearningStateAssembler assembler = new LearningStateAssembler(new FakeQuestions(question));
         LearningSessionStore.LearningSession session = new LearningSessionStore.LearningSession(
@@ -46,7 +46,7 @@ class LearningStateAssemblerTest {
     void shouldBuildPracticeActivityState() {
         Topic topic = new Topic(1L, "Space");
         Concept concept = new Concept(2L, topic, "Stars");
-        Question question = new Question(11L, "What is a star?", concept, Difficulty.EASY, null, QuestionType.DEFINITION);
+        Question question = new Question(11L, "What is a star?", concept, Difficulty.EASY, null, QuestionType.DEFINITION, null, null);
         LearningCycle cycle = new LearningCycle(
                 null,
                 null,
