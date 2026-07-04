@@ -8,6 +8,7 @@ import com.myproject.practico.application.port.in.GetProgramTreeUseCase;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramGenerationStatus;
 import com.myproject.practico.application.program.GenerationStageMetrics;
+import com.myproject.practico.auth.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,19 +30,22 @@ public class LearningProgramController {
     private final GetProgramTreeUseCase getProgramTreeUseCase;
     private final GetProgramStatusUseCase getProgramStatusUseCase;
     private final GetGenerationMetricsUseCase getGenerationMetricsUseCase;
+    private final CurrentUserProvider currentUserProvider;
 
     public LearningProgramController(
             GetCurrentProgramUseCase getCurrentProgramUseCase,
             GetProgramByIdUseCase getProgramByIdUseCase,
             GetProgramTreeUseCase getProgramTreeUseCase,
             GetProgramStatusUseCase getProgramStatusUseCase,
-            GetGenerationMetricsUseCase getGenerationMetricsUseCase
+            GetGenerationMetricsUseCase getGenerationMetricsUseCase,
+            CurrentUserProvider currentUserProvider
     ) {
         this.getCurrentProgramUseCase = getCurrentProgramUseCase;
         this.getProgramByIdUseCase = getProgramByIdUseCase;
         this.getProgramTreeUseCase = getProgramTreeUseCase;
         this.getProgramStatusUseCase = getProgramStatusUseCase;
         this.getGenerationMetricsUseCase = getGenerationMetricsUseCase;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Operation(summary = "Current learning program", description = "Returns curriculum structure for the current user context.")
@@ -55,11 +58,11 @@ public class LearningProgramController {
             @ApiResponse(responseCode = "400", description = "Invalid userId")
     })
     @GetMapping("/current")
-    public ResponseEntity<LearningProgram> current(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+    public ResponseEntity<LearningProgram> current() {
+        if (currentUserProvider.currentUserId().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(getCurrentProgramUseCase.getCurrentProgram(authentication.getName()));
+        return ResponseEntity.ok(getCurrentProgramUseCase.getCurrentProgram(currentUserProvider.currentUserId().get().toString()));
     }
 
     @GetMapping("/{id}")

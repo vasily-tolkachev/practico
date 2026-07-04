@@ -1,7 +1,11 @@
-package com.myproject.practico.adapter.in.rest.security;
+package com.myproject.practico.adapter.in.security;
 
-import com.myproject.practico.adapter.out.security.JwtTokenIssuerAdapter;
+import com.myproject.practico.auth.CurrentUserContext;
+import com.myproject.practico.config.AuthProperties;
+import com.myproject.practico.config.JwtValidationConfig;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,16 +17,23 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtValidationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenIssuerAdapter jwtTokenIssuerAdapter;
+    private final SecretKey signingKey;
 
-    public JwtAuthenticationFilter(JwtTokenIssuerAdapter jwtTokenIssuerAdapter) {
-        this.jwtTokenIssuerAdapter = jwtTokenIssuerAdapter;
+    public JwtValidationFilter(JwtValidationConfig jwtValidationConfig, AuthProperties authProperties) {
+        String secret = jwtValidationConfig.sharedSecret();
+        if (secret == null || secret.isBlank()) {
+            secret = authProperties.jwtSecret();
+        }
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -36,11 +47,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(7);
         try {
-            Claims claims = jwtTokenIssuerAdapter.parseAndValidate(token);
-            String userId = claims.getSubject();
-            if (userId != null && !userId.isBlank() && SecurityContextHolder.getContext().getAuthentication() == null) {
+            Claims claims = Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
+            String uid = claims.get("uid", String.class);
+            String sid = claims.get("sid", String.class);
+            if (uid == null || uid.isBlank()) {
+                uid = claims.getSubject();
+            }
+            if (uid != null && !uid.isBlank() && SecurityContextHolder.getContext().getAuthentication() == null) {
+                CurrentUserContext principal = new CurrentUserContext(
+                        UUID.fromString(uid),
+                        sid == null || sid.isBlank() ? null : UUID.fromString(sid)
+                );
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userId,
+                        principal,
                         null,
                         List.of()
                 );

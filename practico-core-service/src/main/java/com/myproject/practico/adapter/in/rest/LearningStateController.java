@@ -9,6 +9,7 @@ import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
 import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
 import com.myproject.practico.application.port.in.SubmitRetryUseCase;
 import com.myproject.practico.application.service.PracticeAnswer;
+import com.myproject.practico.auth.CurrentUserProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -16,7 +17,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +36,7 @@ public class LearningStateController {
     private final SubmitPracticeUseCase submitPracticeUseCase;
     private final SubmitQuickCheckUseCase submitQuickCheckUseCase;
     private final SubmitRetryUseCase submitRetryUseCase;
+    private final CurrentUserProvider currentUserProvider;
 
     public LearningStateController(
             GetLearningStateUseCase getLearningStateUseCase,
@@ -44,7 +45,8 @@ public class LearningStateController {
             ContinueLearningUseCase continueLearningUseCase,
             SubmitPracticeUseCase submitPracticeUseCase,
             SubmitQuickCheckUseCase submitQuickCheckUseCase,
-            SubmitRetryUseCase submitRetryUseCase
+            SubmitRetryUseCase submitRetryUseCase,
+            CurrentUserProvider currentUserProvider
     ) {
         this.getLearningStateUseCase = getLearningStateUseCase;
         this.startLearningUseCase = startLearningUseCase;
@@ -53,6 +55,7 @@ public class LearningStateController {
         this.submitPracticeUseCase = submitPracticeUseCase;
         this.submitQuickCheckUseCase = submitQuickCheckUseCase;
         this.submitRetryUseCase = submitRetryUseCase;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Operation(summary = "Current learning state", description = "Returns canonical LearningState.")
@@ -75,8 +78,8 @@ public class LearningStateController {
             @ApiResponse(responseCode = "400", description = "Invalid userId")
     })
     @GetMapping("/state")
-    public ResponseEntity<LearningState> state(Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> state() {
+        String userId = userId();
         if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -84,8 +87,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/start")
-    public ResponseEntity<LearningState> start(Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> start() {
+        String userId = userId();
         if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -93,8 +96,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/answer")
-    public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request, Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request) {
+        String userId = userId();
         if (request == null || userId == null || isBlank(request.answer())) {
             return ResponseEntity.badRequest().build();
         }
@@ -102,8 +105,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/continue")
-    public ResponseEntity<LearningState> continueLearning(Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> continueLearning() {
+        String userId = userId();
         if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -111,8 +114,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/practice")
-    public ResponseEntity<LearningState> practice(@RequestBody PracticeRequest request, Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> practice(@RequestBody PracticeRequest request) {
+        String userId = userId();
         if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -121,8 +124,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/quick-check")
-    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request, Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request) {
+        String userId = userId();
         if (request == null || userId == null || request.answer() == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -130,8 +133,8 @@ public class LearningStateController {
     }
 
     @PostMapping("/retry")
-    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request, Authentication authentication) {
-        String userId = userId(authentication);
+    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request) {
+        String userId = userId();
         if (request == null || userId == null || isBlank(request.answer())) {
             return ResponseEntity.badRequest().build();
         }
@@ -153,10 +156,7 @@ public class LearningStateController {
     ) {
     }
 
-    private String userId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            return null;
-        }
-        return authentication.getName();
+    private String userId() {
+        return currentUserProvider.currentUserId().map(Object::toString).orElse(null);
     }
 }

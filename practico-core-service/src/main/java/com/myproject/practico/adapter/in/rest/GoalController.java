@@ -8,10 +8,10 @@ import com.myproject.practico.application.port.in.ListGoalsUseCase;
 import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.goal.GoalLearningStartResult;
 import com.myproject.practico.application.program.LearningProgram;
+import com.myproject.practico.auth.CurrentUserProvider;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +31,7 @@ public class GoalController {
     private final GetGoalProgramUseCase getGoalProgramUseCase;
     private final GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase;
     private final StartLearningFromGoalUseCase startLearningFromGoalUseCase;
+    private final CurrentUserProvider currentUserProvider;
 
     public GoalController(
             CreateGoalUseCase createGoalUseCase,
@@ -38,7 +39,8 @@ public class GoalController {
             GetGoalUseCase getGoalUseCase,
             GetGoalProgramUseCase getGoalProgramUseCase,
             GetGoalResolutionStatusUseCase getGoalResolutionStatusUseCase,
-            StartLearningFromGoalUseCase startLearningFromGoalUseCase
+            StartLearningFromGoalUseCase startLearningFromGoalUseCase,
+            CurrentUserProvider currentUserProvider
     ) {
         this.createGoalUseCase = createGoalUseCase;
         this.listGoalsUseCase = listGoalsUseCase;
@@ -46,6 +48,7 @@ public class GoalController {
         this.getGoalProgramUseCase = getGoalProgramUseCase;
         this.getGoalResolutionStatusUseCase = getGoalResolutionStatusUseCase;
         this.startLearningFromGoalUseCase = startLearningFromGoalUseCase;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
@@ -95,13 +98,12 @@ public class GoalController {
 
     @PostMapping("/{id}/start")
     public ResponseEntity<GoalLearningStartResult> startFromGoal(
-            @PathVariable("id") Long id,
-            Authentication authentication
+            @PathVariable("id") Long id
     ) {
         if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
-        String userId = authentication == null ? null : authentication.getName();
+        String userId = currentUserProvider.currentUserId().map(Object::toString).orElse(null);
         if (isBlank(userId)) {
             return ResponseEntity.badRequest().build();
         }
