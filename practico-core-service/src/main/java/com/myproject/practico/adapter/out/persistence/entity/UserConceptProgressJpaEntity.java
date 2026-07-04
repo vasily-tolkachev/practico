@@ -21,7 +21,7 @@ import java.time.Instant;
 @Entity
 @Table(
         name = "user_concept_progress",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "concept_id"})
+        uniqueConstraints = @UniqueConstraint(columnNames = {"profile_id", "concept_id"})
 )
 @Data
 @NoArgsConstructor
@@ -33,8 +33,8 @@ public class UserConceptProgressJpaEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private LearningProfileJpaEntity user;
+    @JoinColumn(name = "profile_id", nullable = false)
+    private LearningProfileJpaEntity profile;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "concept_id", nullable = false)

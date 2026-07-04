@@ -8,10 +8,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserConceptProgressPersistencePort {
-    Optional<UserConceptProgress> findByUserIdAndConceptId(UUID userId, Long conceptId);
+    Optional<UserConceptProgress> findByProfileIdAndConceptId(UUID profileId, Long conceptId);
 
     UserConceptProgress upsert(
-            UUID userId,
+            UUID profileId,
             Long conceptId,
             ProgressStatus status,
             int correctAnswers,

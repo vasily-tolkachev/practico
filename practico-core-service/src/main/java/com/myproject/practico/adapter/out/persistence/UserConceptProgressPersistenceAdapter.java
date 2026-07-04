@@ -23,14 +23,14 @@ public class UserConceptProgressPersistenceAdapter implements UserConceptProgres
     private final ConceptJpaRepository conceptJpaRepository;
 
     @Override
-    public Optional<UserConceptProgress> findByUserIdAndConceptId(UUID userId, Long conceptId) {
-        return userConceptProgressJpaRepository.findByUser_IdAndConcept_Id(userId, conceptId)
+    public Optional<UserConceptProgress> findByProfileIdAndConceptId(UUID profileId, Long conceptId) {
+        return userConceptProgressJpaRepository.findByProfile_IdAndConcept_Id(profileId, conceptId)
                 .map(this::toDomain);
     }
 
     @Override
     public UserConceptProgress upsert(
-            UUID userId,
+            UUID profileId,
             Long conceptId,
             ProgressStatus status,
             int correctAnswers,
@@ -38,18 +38,18 @@ public class UserConceptProgressPersistenceAdapter implements UserConceptProgres
             Instant updatedAt
     ) {
         UserConceptProgressJpaEntity existing = userConceptProgressJpaRepository
-                .findByUser_IdAndConcept_Id(userId, conceptId)
+                .findByProfile_IdAndConcept_Id(profileId, conceptId)
                 .orElse(null);
 
-        LearningProfileJpaEntity user = learningProfileJpaRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found for concept progress persistence"));
+        LearningProfileJpaEntity profile = learningProfileJpaRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalStateException("Learning profile not found for concept progress persistence"));
         ConceptJpaEntity concept = conceptJpaRepository.findById(conceptId)
                 .orElseThrow(() -> new IllegalStateException("Concept not found for concept progress persistence"));
 
         if (existing == null) {
             UserConceptProgressJpaEntity created = userConceptProgressJpaRepository.save(new UserConceptProgressJpaEntity(
                     null,
-                    user,
+                    profile,
                     concept,
                     ProgressStatusJpa.valueOf(status.name()),
                     correctAnswers,
@@ -71,7 +71,7 @@ public class UserConceptProgressPersistenceAdapter implements UserConceptProgres
     private UserConceptProgress toDomain(UserConceptProgressJpaEntity entity) {
         return new UserConceptProgress(
                 entity.getId(),
-                entity.getUser().getId(),
+                entity.getProfile().getId(),
                 entity.getConcept().getId(),
                 ProgressStatus.valueOf(entity.getStatus().name()),
                 entity.getCorrectAnswers(),

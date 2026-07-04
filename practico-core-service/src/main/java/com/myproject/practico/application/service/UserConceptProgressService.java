@@ -17,13 +17,13 @@ public class UserConceptProgressService {
         this.userConceptProgressPersistencePort = userConceptProgressPersistencePort;
     }
 
-    public UserConceptProgress update(UUID userId, Long conceptId, int score, Instant updatedAt) {
-        return recordAttempt(userId, conceptId, score, updatedAt);
+    public UserConceptProgress update(UUID profileId, Long conceptId, int score, Instant updatedAt) {
+        return recordAttempt(profileId, conceptId, score, updatedAt);
     }
 
-    public UserConceptProgress recordAttempt(UUID userId, Long conceptId, int score, Instant updatedAt) {
+    public UserConceptProgress recordAttempt(UUID profileId, Long conceptId, int score, Instant updatedAt) {
         UserConceptProgress existing = userConceptProgressPersistencePort
-                .findByUserIdAndConceptId(userId, conceptId)
+                .findByProfileIdAndConceptId(profileId, conceptId)
                 .orElse(null);
 
         int totalAnswers = existing == null ? 1 : existing.totalAnswers() + 1;
@@ -34,7 +34,7 @@ public class UserConceptProgressService {
         ProgressStatus status = resolveStatus(score);
 
         return userConceptProgressPersistencePort.upsert(
-                userId,
+                profileId,
                 conceptId,
                 status,
                 correctAnswers,
@@ -43,16 +43,16 @@ public class UserConceptProgressService {
         );
     }
 
-    public UserConceptProgress markMastered(UUID userId, Long conceptId, Instant updatedAt) {
+    public UserConceptProgress markMastered(UUID profileId, Long conceptId, Instant updatedAt) {
         UserConceptProgress existing = userConceptProgressPersistencePort
-                .findByUserIdAndConceptId(userId, conceptId)
+                .findByProfileIdAndConceptId(profileId, conceptId)
                 .orElse(null);
 
         int totalAnswers = existing == null ? 0 : existing.totalAnswers();
         int correctAnswers = existing == null ? 0 : existing.correctAnswers();
 
         return userConceptProgressPersistencePort.upsert(
-                userId,
+                profileId,
                 conceptId,
                 ProgressStatus.MASTERED,
                 correctAnswers,

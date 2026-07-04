@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record UserConceptProgress(
         Long id,
-        UUID userId,
+        UUID profileId,
         Long conceptId,
         ProgressStatus status,
         int correctAnswers,

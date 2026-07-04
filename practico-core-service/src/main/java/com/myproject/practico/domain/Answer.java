@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record Answer(
         Long id,
-        UUID userId,
+        UUID profileId,
         Long questionId,
         String answer,
         int score,

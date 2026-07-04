@@ -18,13 +18,13 @@ public class AnswerPersistenceAdapter implements AnswerPersistencePort {
 
     @Override
     public void save(Answer answer) {
-        UUID userId = answer.userId();
-        LearningProfileJpaEntity user = learningProfileJpaRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found for answer persistence"));
+        UUID profileId = answer.profileId();
+        LearningProfileJpaEntity profile = learningProfileJpaRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalStateException("Learning profile not found for answer persistence"));
 
         answerJpaRepository.save(new AnswerJpaEntity(
                 null,
-                user,
+                profile,
                 answer.questionId(),
                 answer.answer(),
                 answer.score(),

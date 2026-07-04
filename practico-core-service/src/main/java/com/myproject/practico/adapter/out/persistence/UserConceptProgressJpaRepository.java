@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserConceptProgressJpaRepository extends JpaRepository<UserConceptProgressJpaEntity, Long> {
-    Optional<UserConceptProgressJpaEntity> findByUser_IdAndConcept_Id(UUID userId, Long conceptId);
+    Optional<UserConceptProgressJpaEntity> findByProfile_IdAndConcept_Id(UUID profileId, Long conceptId);
 }
