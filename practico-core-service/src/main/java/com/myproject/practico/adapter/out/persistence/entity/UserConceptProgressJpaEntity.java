@@ -34,7 +34,7 @@ public class UserConceptProgressJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private UserJpaEntity user;
+    private LearningProfileJpaEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "concept_id", nullable = false)

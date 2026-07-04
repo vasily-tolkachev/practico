@@ -39,7 +39,7 @@ import com.myproject.practico.application.port.out.ProgramStructurePersistencePo
 import com.myproject.practico.application.port.out.ProgramMicroConceptReadPort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
-import com.myproject.practico.application.port.out.UserPersistencePort;
+import com.myproject.practico.application.port.out.LearningProfilePersistencePort;
 import com.myproject.practico.application.service.EvaluationService;
 import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
@@ -323,7 +323,7 @@ public class ApplicationWiringConfig {
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             LearningEngine learningEngine,
-            UserPersistencePort userPersistencePort,
+            LearningProfilePersistencePort learningProfilePersistencePort,
             AnswerPersistencePort answerPersistencePort,
             LearningStateAssembler learningStateAssembler
     ) {
@@ -331,7 +331,7 @@ public class ApplicationWiringConfig {
                 learningSessionService,
                 getQuestionUseCase,
                 learningEngine,
-                userPersistencePort,
+                learningProfilePersistencePort,
                 answerPersistencePort,
                 learningStateAssembler
         );

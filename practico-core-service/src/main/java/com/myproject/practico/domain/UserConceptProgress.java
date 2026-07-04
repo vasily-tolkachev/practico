@@ -1,10 +1,11 @@
 package com.myproject.practico.domain;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record UserConceptProgress(
         Long id,
-        Long userId,
+        UUID userId,
         Long conceptId,
         ProgressStatus status,
         int correctAnswers,

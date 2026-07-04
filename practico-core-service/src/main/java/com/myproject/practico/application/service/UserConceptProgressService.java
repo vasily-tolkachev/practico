@@ -5,6 +5,7 @@ import com.myproject.practico.domain.ProgressStatus;
 import com.myproject.practico.domain.UserConceptProgress;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class UserConceptProgressService {
     private static final int MASTERY_THRESHOLD = 8;
@@ -16,11 +17,11 @@ public class UserConceptProgressService {
         this.userConceptProgressPersistencePort = userConceptProgressPersistencePort;
     }
 
-    public UserConceptProgress update(Long userId, Long conceptId, int score, Instant updatedAt) {
+    public UserConceptProgress update(UUID userId, Long conceptId, int score, Instant updatedAt) {
         return recordAttempt(userId, conceptId, score, updatedAt);
     }
 
-    public UserConceptProgress recordAttempt(Long userId, Long conceptId, int score, Instant updatedAt) {
+    public UserConceptProgress recordAttempt(UUID userId, Long conceptId, int score, Instant updatedAt) {
         UserConceptProgress existing = userConceptProgressPersistencePort
                 .findByUserIdAndConceptId(userId, conceptId)
                 .orElse(null);
@@ -42,7 +43,7 @@ public class UserConceptProgressService {
         );
     }
 
-    public UserConceptProgress markMastered(Long userId, Long conceptId, Instant updatedAt) {
+    public UserConceptProgress markMastered(UUID userId, Long conceptId, Instant updatedAt) {
         UserConceptProgress existing = userConceptProgressPersistencePort
                 .findByUserIdAndConceptId(userId, conceptId)
                 .orElse(null);

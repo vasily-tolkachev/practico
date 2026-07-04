@@ -3,11 +3,12 @@ package com.myproject.practico.application.service;
 import com.myproject.practico.domain.Question;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public interface LearningEngine {
 
     LearningResult handleQuestionAnswer(
-            Long userId,
+            UUID userId,
             Question currentQuestion,
             String answer,
             LearningSessionStore.LearningSession session,
@@ -15,7 +16,7 @@ public interface LearningEngine {
     );
 
     LearningResult handleRetryAnswer(
-            Long userId,
+            UUID userId,
             Question currentQuestion,
             String answer,
             LearningSessionStore.LearningSession session,

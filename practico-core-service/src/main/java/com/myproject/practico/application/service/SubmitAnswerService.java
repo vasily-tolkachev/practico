@@ -5,19 +5,20 @@ import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
-import com.myproject.practico.application.port.out.UserPersistencePort;
+import com.myproject.practico.application.port.out.LearningProfilePersistencePort;
 import com.myproject.practico.domain.Answer;
+import com.myproject.practico.domain.LearningProfile;
 import com.myproject.practico.domain.Question;
-import com.myproject.practico.domain.User;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     private final LearningSessionService learningSessionService;
     private final GetQuestionUseCase getQuestionUseCase;
     private final LearningEngine learningEngine;
-    private final UserPersistencePort userPersistencePort;
+    private final LearningProfilePersistencePort learningProfilePersistencePort;
     private final AnswerPersistencePort answerPersistencePort;
     private final LearningStateAssembler learningStateAssembler;
 
@@ -25,14 +26,14 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             LearningSessionService learningSessionService,
             GetQuestionUseCase getQuestionUseCase,
             LearningEngine learningEngine,
-            UserPersistencePort userPersistencePort,
+            LearningProfilePersistencePort learningProfilePersistencePort,
             AnswerPersistencePort answerPersistencePort,
             LearningStateAssembler learningStateAssembler
     ) {
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
         this.learningEngine = learningEngine;
-        this.userPersistencePort = userPersistencePort;
+        this.learningProfilePersistencePort = learningProfilePersistencePort;
         this.answerPersistencePort = answerPersistencePort;
         this.learningStateAssembler = learningStateAssembler;
     }
@@ -54,23 +55,22 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         Instant now = Instant.now();
-        Long numericUserId = parseUserId(userId);
-        User user = userPersistencePort.findById(numericUserId)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + numericUserId));
-        userPersistencePort.touch(numericUserId, now);
+        UUID parsedUserId = parseUserId(userId);
+        LearningProfile profile = learningProfilePersistencePort.ensureExists(parsedUserId, now);
+        learningProfilePersistencePort.touch(parsedUserId, now);
 
         LearningResult learningResult;
         try {
             learningResult = session.phase() == LearningPhase.RETRY
-                    ? learningEngine.handleRetryAnswer(user.id(), currentQuestion, answer, session, now)
-                    : learningEngine.handleQuestionAnswer(user.id(), currentQuestion, answer, session, now);
+                    ? learningEngine.handleRetryAnswer(profile.id(), currentQuestion, answer, session, now)
+                    : learningEngine.handleQuestionAnswer(profile.id(), currentQuestion, answer, session, now);
         } catch (IllegalStateException ex) {
             return learningStateAssembler.assemble(userId, session);
         }
 
         EvaluationResult evaluation = learningResult.evaluation();
         Question nextQuestion = learningResult.nextQuestion();
-        persistAnswer(user, currentQuestion, answer, evaluation, now);
+        persistAnswer(profile, currentQuestion, answer, evaluation, now);
 
         Long nextQuestionId = switch (learningResult.nextPhase()) {
             case LEARNING_CARD -> currentQuestion.id();
@@ -130,10 +130,10 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
     }
 
-    private void persistAnswer(User user, Question currentQuestion, String answerText, EvaluationResult evaluation, Instant now) {
+    private void persistAnswer(LearningProfile profile, Question currentQuestion, String answerText, EvaluationResult evaluation, Instant now) {
         answerPersistencePort.save(new Answer(
                 null,
-                user.id(),
+                profile.id(),
                 currentQuestion.id(),
                 answerText,
                 evaluation.score(),
@@ -142,10 +142,10 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         ));
     }
 
-    private Long parseUserId(String userId) {
+    private UUID parseUserId(String userId) {
         try {
-            return Long.parseLong(userId);
-        } catch (NumberFormatException ex) {
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("Invalid authenticated user id: " + userId, ex);
         }
     }

@@ -1,10 +1,11 @@
 package com.myproject.practico.domain;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record Answer(
         Long id,
-        Long userId,
+        UUID userId,
         Long questionId,
         String answer,
         int score,

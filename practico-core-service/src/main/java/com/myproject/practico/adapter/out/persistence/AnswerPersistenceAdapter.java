@@ -1,22 +1,25 @@
 package com.myproject.practico.adapter.out.persistence;
 
 import com.myproject.practico.adapter.out.persistence.entity.AnswerJpaEntity;
-import com.myproject.practico.adapter.out.persistence.entity.UserJpaEntity;
+import com.myproject.practico.adapter.out.persistence.entity.LearningProfileJpaEntity;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.domain.Answer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
 public class AnswerPersistenceAdapter implements AnswerPersistencePort {
 
     private final AnswerJpaRepository answerJpaRepository;
-    private final UserJpaRepository userJpaRepository;
+    private final LearningProfileJpaRepository learningProfileJpaRepository;
 
     @Override
     public void save(Answer answer) {
-        UserJpaEntity user = userJpaRepository.findById(answer.userId())
+        UUID userId = answer.userId();
+        LearningProfileJpaEntity user = learningProfileJpaRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found for answer persistence"));
 
         answerJpaRepository.save(new AnswerJpaEntity(

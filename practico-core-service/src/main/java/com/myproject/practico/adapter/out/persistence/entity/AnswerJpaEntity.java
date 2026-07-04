@@ -28,7 +28,7 @@ public class AnswerJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private UserJpaEntity user;
+    private LearningProfileJpaEntity user;
 
     @Column(nullable = false)
     private Long questionId;

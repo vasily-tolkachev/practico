@@ -5,12 +5,13 @@ import com.myproject.practico.domain.ProgressStatus;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface UserConceptProgressPersistencePort {
-    Optional<UserConceptProgress> findByUserIdAndConceptId(Long userId, Long conceptId);
+    Optional<UserConceptProgress> findByUserIdAndConceptId(UUID userId, Long conceptId);
 
     UserConceptProgress upsert(
-            Long userId,
+            UUID userId,
             Long conceptId,
             ProgressStatus status,
             int correctAnswers,

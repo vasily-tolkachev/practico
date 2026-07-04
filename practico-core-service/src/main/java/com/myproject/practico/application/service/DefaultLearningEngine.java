@@ -6,6 +6,7 @@ import com.myproject.practico.domain.UserConceptProgress;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public class DefaultLearningEngine implements LearningEngine {
 
@@ -31,7 +32,7 @@ public class DefaultLearningEngine implements LearningEngine {
 
     @Override
     public LearningResult handleQuestionAnswer(
-            Long userId,
+            UUID userId,
             Question currentQuestion,
             String answer,
             LearningSessionStore.LearningSession session,
@@ -86,7 +87,7 @@ public class DefaultLearningEngine implements LearningEngine {
 
     @Override
     public LearningResult handleRetryAnswer(
-            Long userId,
+            UUID userId,
             Question currentQuestion,
             String answer,
             LearningSessionStore.LearningSession session,
