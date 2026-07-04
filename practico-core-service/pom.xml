@@ -14,6 +14,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.myproject</groupId>
+            <artifactId>practico-auth-contract</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
@@ -87,13 +92,6 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>${project.basedir}/../src/main/java</sourceDirectory>
-        <testSourceDirectory>${project.basedir}/../src/test/java</testSourceDirectory>
-        <resources>
-            <resource>
-                <directory>${project.basedir}/../src/main/resources</directory>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

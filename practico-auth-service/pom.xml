@@ -11,4 +11,12 @@
     </parent>
 
     <artifactId>practico-auth-service</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.myproject</groupId>
+            <artifactId>practico-auth-contract</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>
