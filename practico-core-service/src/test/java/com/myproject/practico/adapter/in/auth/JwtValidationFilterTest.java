@@ -1,4 +1,4 @@
-package com.myproject.practico.adapter.in.security;
+package com.myproject.practico.adapter.in.auth;
 
 import com.myproject.practico.config.AuthProperties;
 import com.myproject.practico.config.JwtValidationConfig;
@@ -16,12 +16,17 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class JwtValidationFilterTest {
 
     private static final String SECRET = "change-me-please-change-me-please-change-me";
+
+    @AfterEach
+    void clear() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void shouldRejectInvalidSignature() throws Exception {
@@ -85,7 +90,3 @@ class JwtValidationFilterTest {
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
     }
 }
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }

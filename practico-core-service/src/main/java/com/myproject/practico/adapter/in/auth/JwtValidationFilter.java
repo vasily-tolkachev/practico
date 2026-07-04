@@ -1,4 +1,4 @@
-package com.myproject.practico.adapter.in.security;
+package com.myproject.practico.adapter.in.auth;
 
 import com.myproject.practico.auth.CurrentUserContext;
 import com.myproject.practico.config.AuthProperties;
