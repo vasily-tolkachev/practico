@@ -54,7 +54,10 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
 
         Instant now = Instant.now();
-        User user = userPersistencePort.upsertByTelegramId(userId, now);
+        Long numericUserId = parseUserId(userId);
+        User user = userPersistencePort.findById(numericUserId)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + numericUserId));
+        userPersistencePort.touch(numericUserId, now);
 
         LearningResult learningResult;
         try {
@@ -137,5 +140,13 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
                 evaluation.evaluation(),
                 now
         ));
+    }
+
+    private Long parseUserId(String userId) {
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid authenticated user id: " + userId, ex);
+        }
     }
 }

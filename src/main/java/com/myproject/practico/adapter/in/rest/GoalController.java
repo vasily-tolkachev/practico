@@ -11,6 +11,7 @@ import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -95,13 +96,13 @@ public class GoalController {
     @PostMapping("/{id}/start")
     public ResponseEntity<GoalLearningStartResult> startFromGoal(
             @PathVariable("id") Long id,
-            @RequestBody(required = false) StartGoalRequest request
+            Authentication authentication
     ) {
         if (!isValidId(id)) {
             return ResponseEntity.badRequest().build();
         }
-        String userId = request == null ? null : request.userId();
-        if (userId != null && userId.isBlank()) {
+        String userId = authentication == null ? null : authentication.getName();
+        if (isBlank(userId)) {
             return ResponseEntity.badRequest().build();
         }
         return startLearningFromGoalUseCase.start(id, userId)
@@ -123,8 +124,4 @@ public class GoalController {
     ) {
     }
 
-    public record StartGoalRequest(
-            String userId
-    ) {
-    }
 }

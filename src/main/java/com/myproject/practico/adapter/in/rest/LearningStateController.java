@@ -16,11 +16,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Set;
@@ -75,79 +75,88 @@ public class LearningStateController {
             @ApiResponse(responseCode = "400", description = "Invalid userId")
     })
     @GetMapping("/state")
-    public ResponseEntity<LearningState> state(@RequestParam String userId) {
-        if (isBlank(userId)) {
+    public ResponseEntity<LearningState> state(Authentication authentication) {
+        String userId = userId(authentication);
+        if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(getLearningStateUseCase.getState(userId));
     }
 
     @PostMapping("/start")
-    public ResponseEntity<LearningState> start(@RequestBody UserRequest request) {
-        if (request == null || isBlank(request.userId())) {
+    public ResponseEntity<LearningState> start(Authentication authentication) {
+        String userId = userId(authentication);
+        if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(startLearningUseCase.start(request.userId()));
+        return ResponseEntity.ok(startLearningUseCase.start(userId));
     }
 
     @PostMapping("/answer")
-    public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request) {
-        if (request == null || isBlank(request.userId()) || isBlank(request.answer())) {
+    public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request, Authentication authentication) {
+        String userId = userId(authentication);
+        if (request == null || userId == null || isBlank(request.answer())) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(submitAnswerUseCase.submit(request.userId(), request.answer()));
+        return ResponseEntity.ok(submitAnswerUseCase.submit(userId, request.answer()));
     }
 
     @PostMapping("/continue")
-    public ResponseEntity<LearningState> continueLearning(@RequestBody UserRequest request) {
-        if (request == null || isBlank(request.userId())) {
+    public ResponseEntity<LearningState> continueLearning(Authentication authentication) {
+        String userId = userId(authentication);
+        if (userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(continueLearningUseCase.continueLearning(request.userId()));
+        return ResponseEntity.ok(continueLearningUseCase.continueLearning(userId));
     }
 
     @PostMapping("/practice")
-    public ResponseEntity<LearningState> practice(@RequestBody PracticeRequest request) {
-        if (request == null || isBlank(request.userId())) {
+    public ResponseEntity<LearningState> practice(@RequestBody PracticeRequest request, Authentication authentication) {
+        String userId = userId(authentication);
+        if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
         PracticeAnswer answer = new PracticeAnswer(request.booleanAnswer(), request.selectedOptions());
-        return ResponseEntity.ok(submitPracticeUseCase.submitPractice(request.userId(), answer));
+        return ResponseEntity.ok(submitPracticeUseCase.submitPractice(userId, answer));
     }
 
     @PostMapping("/quick-check")
-    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request) {
-        if (request == null || isBlank(request.userId()) || request.answer() == null) {
+    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request, Authentication authentication) {
+        String userId = userId(authentication);
+        if (request == null || userId == null || request.answer() == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(submitQuickCheckUseCase.submitQuickCheck(request.userId(), request.answer()));
+        return ResponseEntity.ok(submitQuickCheckUseCase.submitQuickCheck(userId, request.answer()));
     }
 
     @PostMapping("/retry")
-    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request) {
-        if (request == null || isBlank(request.userId()) || isBlank(request.answer())) {
+    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request, Authentication authentication) {
+        String userId = userId(authentication);
+        if (request == null || userId == null || isBlank(request.answer())) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(submitRetryUseCase.submitRetry(request.userId(), request.answer()));
+        return ResponseEntity.ok(submitRetryUseCase.submitRetry(userId, request.answer()));
     }
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
 
-    public record UserRequest(String userId) {
-    }
-
     public record AnswerRequest(
-            String userId,
             String answer
     ) {
     }
 
     public record PracticeRequest(
-            String userId,
             Boolean booleanAnswer,
             Set<Integer> selectedOptions
     ) {
+    }
+
+    private String userId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            return null;
+        }
+        return authentication.getName();
     }
 }

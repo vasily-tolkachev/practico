@@ -4,7 +4,7 @@ import java.time.Instant;
 
 public record User(
         Long id,
-        String telegramId,
+        String displayName,
         Instant createdAt,
-        Instant lastSeen
+        Instant updatedAt
 ) {}
