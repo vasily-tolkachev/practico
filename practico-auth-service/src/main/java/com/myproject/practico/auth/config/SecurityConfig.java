@@ -32,7 +32,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/.well-known/jwks.json").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/.well-known/jwks.json",
+                                "/swagger-ui",
+                                "/swagger-ui/**",
+                                "/api-docs",
+                                "/api-docs/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
