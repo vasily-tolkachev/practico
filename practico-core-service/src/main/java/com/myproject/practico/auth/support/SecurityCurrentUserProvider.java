@@ -2,6 +2,7 @@ package com.myproject.practico.auth.support;
 
 import com.myproject.practico.auth.CurrentUserContext;
 import com.myproject.practico.auth.CurrentUserProvider;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,20 @@ public class SecurityCurrentUserProvider implements CurrentUserProvider {
         if (principal instanceof String value && !value.isBlank()) {
             try {
                 return Optional.of(UUID.fromString(value));
+            } catch (IllegalArgumentException ignored) {
+                return Optional.empty();
+            }
+        }
+        if (principal instanceof Jwt jwt) {
+            String uid = jwt.getClaimAsString("uid");
+            if (uid == null || uid.isBlank()) {
+                uid = jwt.getSubject();
+            }
+            if (uid == null || uid.isBlank()) {
+                return Optional.empty();
+            }
+            try {
+                return Optional.of(UUID.fromString(uid));
             } catch (IllegalArgumentException ignored) {
                 return Optional.empty();
             }

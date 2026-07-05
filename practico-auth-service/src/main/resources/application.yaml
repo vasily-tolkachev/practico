@@ -33,5 +33,5 @@ springdoc:
 auth:
   providers:
     google:
-      enabled: ${AUTH_PROVIDERS_GOOGLE_ENABLED:true}
-      client-id: ${AUTH_PROVIDERS_GOOGLE_CLIENT_ID:1234567890}
+      enabled: ${AUTH_PROVIDERS_GOOGLE_ENABLED}
+      client-id: ${AUTH_PROVIDERS_GOOGLE_CLIENT_ID}
