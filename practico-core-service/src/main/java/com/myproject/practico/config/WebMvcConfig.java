@@ -20,5 +20,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowedOrigins(LOCAL_WEB_ORIGIN)
                 .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("*");
+
+        registry.addMapping("/programs/**")
+                .allowedOrigins(LOCAL_WEB_ORIGIN)
+                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedHeaders("*");
     }
 }
