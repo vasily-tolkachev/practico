@@ -13,17 +13,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins(LOCAL_WEB_ORIGIN)
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedMethods("GET", "POST", "PATCH", "OPTIONS")
                 .allowedHeaders("*");
 
         registry.addMapping("/goals/**")
                 .allowedOrigins(LOCAL_WEB_ORIGIN)
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedMethods("GET", "POST", "PATCH", "OPTIONS")
                 .allowedHeaders("*");
 
         registry.addMapping("/programs/**")
                 .allowedOrigins(LOCAL_WEB_ORIGIN)
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedMethods("GET", "POST", "PATCH", "OPTIONS")
                 .allowedHeaders("*");
     }
 }

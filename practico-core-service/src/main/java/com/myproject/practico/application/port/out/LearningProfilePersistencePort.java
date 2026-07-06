@@ -10,4 +10,5 @@ public interface LearningProfilePersistencePort {
     Optional<LearningProfile> findById(UUID userId);
     LearningProfile ensureExists(UUID userId, Instant now);
     LearningProfile touch(UUID userId, Instant now);
+    LearningProfile updateDisplayName(UUID userId, String displayName, Instant now);
 }

@@ -43,6 +43,11 @@ class SubmitAnswerServiceProfileBootstrapTest {
                 touchCalls.incrementAndGet();
                 return new LearningProfile(userId, "Learner", now, now);
             }
+
+            @Override
+            public LearningProfile updateDisplayName(UUID userId, String displayName, Instant now) {
+                return new LearningProfile(userId, displayName, now, now);
+            }
         };
 
         AnswerPersistencePort answerPort = answer -> {};

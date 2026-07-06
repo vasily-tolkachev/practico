@@ -39,6 +39,15 @@ public class LearningProfilePersistenceAdapter implements LearningProfilePersist
         return toDomain(learningProfileJpaRepository.save(existing));
     }
 
+    @Override
+    public LearningProfile updateDisplayName(UUID userId, String displayName, Instant now) {
+        LearningProfileJpaEntity existing = learningProfileJpaRepository.findById(userId)
+                .orElseGet(() -> new LearningProfileJpaEntity(userId, displayName, now, now));
+        existing.setDisplayName(displayName);
+        existing.setUpdatedAt(now);
+        return toDomain(learningProfileJpaRepository.save(existing));
+    }
+
     private LearningProfile toDomain(LearningProfileJpaEntity entity) {
         return new LearningProfile(
                 entity.getId(),
