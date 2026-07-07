@@ -11,8 +11,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  CORE_IMAGE_NAME: ${{ github.repository_owner }}/practico-core
-  AUTH_IMAGE_NAME: ${{ github.repository_owner }}/practico-auth
+  CORE_IMAGE_NAME: ${{ github.repository_owner }}/mastery-core
+  AUTH_IMAGE_NAME: ${{ github.repository_owner }}/mastery-auth
 
 jobs:
   build-test:
