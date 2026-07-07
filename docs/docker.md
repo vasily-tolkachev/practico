@@ -37,3 +37,23 @@ Nginx настроен как единая точка входа:
 
 - `docker/nginx/certs/fullchain.pem`
 - `docker/nginx/certs/privkey.pem`
+
+### Self-signed (временно для deploy без пользователей)
+
+Windows (PowerShell, нужен `openssl` в PATH):
+
+```powershell
+.\docker\nginx\certs\generate-self-signed.ps1 -Domain localhost -Days 365
+```
+
+Linux/macOS:
+
+```bash
+sh ./docker/nginx/certs/generate-self-signed.sh localhost 365
+```
+
+После генерации можно запускать:
+
+```bash
+docker compose up -d
+```
