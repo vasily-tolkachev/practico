@@ -61,6 +61,9 @@ services:
       dockerfile: ../practico/docker/frontend/Dockerfile
     container_name: practico-frontend
     restart: unless-stopped
+    environment:
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-/api}
+      PUBLIC_AUTH_BASE_URL: ${PUBLIC_AUTH_BASE_URL:-/api/auth}
     networks:
       - practico-net
 
@@ -74,8 +77,10 @@ services:
       - frontend
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
     networks:
       - practico-net
 
