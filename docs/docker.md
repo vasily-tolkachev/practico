@@ -1,4 +1,4 @@
-# Docker (Sprint 9 / Section 5)
+# Docker (Sprint 9 / Sections 5-6)
 
 ## Что добавлено
 
@@ -6,39 +6,40 @@
 - `practico-auth-service/Dockerfile`
 - `docker/frontend/Dockerfile`
 - `docker/frontend/nginx.conf`
-- `docker/nginx/nginx.conf`
-- `docker-compose.yml`
+- `docker/nginx/nginx.local.conf`
+- `docker/nginx/nginx.prod.conf`
+- `docker-compose.yml` (local)
+- `docker-compose.prod.yml` (prod override)
 
-## Важно по frontend
+## Frontend
 
-В `docker-compose.yml` frontend собирается из контекста `../mastery-web`:
+Frontend собирается из соседнего репозитория:
 
 - `context: ../mastery-web`
 - `dockerfile: ../practico/docker/frontend/Dockerfile`
 
-Это сделано, потому что текущий репозиторий `practico` содержит backend-модули, а React frontend находится в соседнем репозитории.
+## Локальный запуск (без HTTPS)
 
-## Reverse proxy (Sprint 9 / Section 6)
+Локально используется только HTTP и `nginx.local.conf`.
 
-Nginx настроен как единая точка входа:
+```bash
+docker compose up -d
+```
 
-- HTTP `:80` -> redirect на HTTPS
-- HTTPS `:443` -> reverse proxy:
-  - `/api/auth/*` -> `auth:8081`
-  - `/api/*` -> `core:8080`
-  - `/` -> `frontend:80`
+## Production запуск (с HTTPS)
 
-Также включены:
+В production используется override-файл `docker-compose.prod.yml` и `nginx.prod.conf`.
 
-- `gzip`
-- security headers (`HSTS`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `CSP`)
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
 
 Для HTTPS нужны сертификаты:
 
 - `docker/nginx/certs/fullchain.pem`
 - `docker/nginx/certs/privkey.pem`
 
-### Self-signed (временно для deploy без пользователей)
+## Self-signed сертификат (временно)
 
 Windows (PowerShell, нужен `openssl` в PATH):
 
@@ -50,10 +51,4 @@ Linux/macOS:
 
 ```bash
 sh ./docker/nginx/certs/generate-self-signed.sh localhost 365
-```
-
-После генерации можно запускать:
-
-```bash
-docker compose up -d
 ```
