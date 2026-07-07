@@ -17,7 +17,8 @@ auth:
     jwks-uri: ${AUTH_JWKS_URI}
 
 telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN}
+  enabled: ${TELEGRAM_ENABLED:false}
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
 
 openai:
   api-key: ${OPENAI_API_KEY}

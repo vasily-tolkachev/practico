@@ -1,19 +1,15 @@
 package com.myproject.practico.adapter.out.telegram;
 
 import com.myproject.practico.application.port.out.MessengerPort;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "telegram.enabled", havingValue = "true")
-public class TelegramAdapter implements MessengerPort {
-
-    private final TelegramClient telegramClient;
+@ConditionalOnProperty(name = "telegram.enabled", havingValue = "false", matchIfMissing = true)
+public class NoopMessengerAdapter implements MessengerPort {
 
     @Override
     public void sendMessage(String userId, String text) {
-        telegramClient.sendMessage(userId, text);
+        // Telegram disabled in this profile.
     }
 }
