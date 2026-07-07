@@ -4,19 +4,10 @@
 
 - `practico-core-service/Dockerfile`
 - `practico-auth-service/Dockerfile`
-- `docker/frontend/Dockerfile`
-- `docker/frontend/nginx.conf`
 - `docker/nginx/nginx.local.conf`
 - `docker/nginx/nginx.prod.conf`
 - `docker-compose.yml` (local)
 - `docker-compose.prod.yml` (prod override)
-
-## Frontend
-
-Frontend собирается из соседнего репозитория:
-
-- `context: ../mastery-web`
-- `dockerfile: ../practico/docker/frontend/Dockerfile`
 
 ## Локальный запуск (без HTTPS)
 
