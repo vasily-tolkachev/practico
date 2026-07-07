@@ -2,14 +2,14 @@ server:
   port: ${SERVER_PORT:8081}
 
 spring:
+  application:
+    name: practico-auth-service
+  profiles:
+    default: local
   sql:
     init:
       mode: never
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/practico
-    username: postgres
-    password: postgres
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -22,7 +22,7 @@ spring:
     properties:
       hibernate:
         default_schema: auth
-    show-sql: true
+    show-sql: false
 
 springdoc:
   api-docs:
@@ -31,7 +31,6 @@ springdoc:
     path: /swagger-ui
 
 auth:
-  providers:
-    google:
-      enabled: ${AUTH_PROVIDERS_GOOGLE_ENABLED}
-      client-id: ${AUTH_PROVIDERS_GOOGLE_CLIENT_ID}
+  jwt:
+    key-id: ${AUTH_JWT_KEY_ID:practico-auth-k1}
+    access-token-ttl-seconds: ${AUTH_JWT_ACCESS_TOKEN_TTL_SECONDS:3600}

@@ -1,15 +1,8 @@
-telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN}
-
-auth:
-  jwt-validation:
-    jwks-uri: ${AUTH_JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}
-
-openai:
-  api-key: ${OPENAI_API_KEY:}
-  model: ${OPENAI_MODEL:gpt-5-mini}
-
 spring:
+  application:
+    name: practico-core-service
+  profiles:
+    default: local
   security:
     oauth2:
       resourceserver:
@@ -19,10 +12,6 @@ spring:
     init:
       mode: never
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/practico
-    username: postgres
-    password: postgres
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -35,7 +24,14 @@ spring:
     properties:
       hibernate:
         default_schema: core
-    show-sql: true
+    show-sql: false
+
+auth:
+  jwt-validation:
+    jwks-uri: ${AUTH_JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}
+
+openai:
+  model: ${OPENAI_MODEL:gpt-5-mini}
 
 springdoc:
   api-docs:
