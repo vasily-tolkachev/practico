@@ -1,0 +1,8 @@
+services:
+  auth:
+    image: ${AUTH_IMAGE}
+    pull_policy: always
+
+  core:
+    image: ${CORE_IMAGE}
+    pull_policy: always
