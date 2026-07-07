@@ -8,6 +8,7 @@ import com.myproject.practico.auth.domain.Identity;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class IdentityPersistenceAdapter implements IdentityRepository {
@@ -21,6 +22,11 @@ public class IdentityPersistenceAdapter implements IdentityRepository {
     @Override
     public Optional<Identity> findByProviderAndProviderSubject(AuthenticationProviderType provider, String providerSubject) {
         return repository.findByProviderAndProviderSubject(provider, providerSubject).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Identity> findFirstByUserId(UUID userId) {
+        return repository.findFirstByUser_IdOrderByCreatedAtAsc(userId).map(this::toDomain);
     }
 
     @Override

@@ -32,6 +32,7 @@ public class JwtTokenIssuerAdapter implements TokenIssuerPort {
                 .subject(user.id().toString())
                 .claim("uid", user.id().toString())
                 .claim("sid", sessionId.toString())
+                .claim("name", user.displayName())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt))
                 .signWith(keyMaterial.privateKey(), SignatureAlgorithm.RS256)

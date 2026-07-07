@@ -4,6 +4,9 @@ import com.myproject.practico.application.port.out.LearningProfilePersistencePor
 import com.myproject.practico.auth.CurrentUserProvider;
 import com.myproject.practico.domain.LearningProfile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,7 +37,13 @@ public class ProfileController {
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(learningProfilePersistencePort.ensureExists(userId, Instant.now()));
+        Instant now = Instant.now();
+        LearningProfile profile = learningProfilePersistencePort.ensureExists(userId, now);
+        String jwtDisplayName = currentJwtDisplayName();
+        if ("Learner".equals(profile.displayName()) && jwtDisplayName != null && !jwtDisplayName.isBlank()) {
+            profile = learningProfilePersistencePort.updateDisplayName(userId, jwtDisplayName.trim(), now);
+        }
+        return ResponseEntity.ok(profile);
     }
 
     @PatchMapping
@@ -57,5 +66,17 @@ public class ProfileController {
     public record UpdateProfileRequest(
             String displayName
     ) {
+    }
+
+    private String currentJwtDisplayName() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof Jwt jwt) {
+            return jwt.getClaimAsString("name");
+        }
+        return null;
     }
 }
