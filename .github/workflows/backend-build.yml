@@ -29,7 +29,7 @@ jobs:
           cache: maven
 
       - name: Build jars (skip tests)
-        run: mvn -q -DskipTests package
+        run: mvn -q -Dmaven.test.skip=true package
 
   docker-publish:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
           cache: maven
 
       - name: Build jars (skip tests)
-        run: mvn -q -DskipTests package
+        run: mvn -q -Dmaven.test.skip=true package
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
