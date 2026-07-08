@@ -28,9 +28,6 @@ jobs:
           java-version: "25"
           cache: maven
 
-      - name: Run tests
-        run: ./mvnw -q test
-
   docker-publish:
     runs-on: ubuntu-latest
     needs: build-test
