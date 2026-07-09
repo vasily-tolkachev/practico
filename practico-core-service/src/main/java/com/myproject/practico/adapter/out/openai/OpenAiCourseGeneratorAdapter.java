@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -23,6 +24,8 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 60_000;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String SYSTEM_PROMPT = """
@@ -71,10 +74,21 @@ public class OpenAiCourseGeneratorAdapter implements AiCourseGeneratorPort {
         String model = properties.model() == null || properties.model().isBlank()
                 ? "gpt-5-mini"
                 : properties.model();
+        int connectTimeoutMs = properties.connectTimeoutMs() == null || properties.connectTimeoutMs() <= 0
+                ? DEFAULT_CONNECT_TIMEOUT_MS
+                : properties.connectTimeoutMs();
+        int readTimeoutMs = properties.readTimeoutMs() == null || properties.readTimeoutMs() <= 0
+                ? DEFAULT_READ_TIMEOUT_MS
+                : properties.readTimeoutMs();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeoutMs);
+        requestFactory.setReadTimeout(readTimeoutMs);
+
         RestClient restClient = RestClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .requestFactory(requestFactory)
                 .build();
 
         try {
