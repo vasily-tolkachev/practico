@@ -18,6 +18,8 @@ import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.LearningProgramOrigin;
 import com.myproject.practico.domain.LearningProgramStatus;
 import com.myproject.practico.domain.GoalProgramSourceType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 public class ProgramResolverService implements ProgramResolverUseCase {
+    private static final Logger log = LoggerFactory.getLogger(ProgramResolverService.class);
 
     private final LearningProgramPersistencePort learningProgramPersistencePort;
     private final AiCourseGeneratorPort aiCourseGeneratorPort;
@@ -60,6 +63,7 @@ public class ProgramResolverService implements ProgramResolverUseCase {
         Long programId = persistedProgram.id();
 
         try {
+            log.info("Program resolution started: goalId={}, programId={}", goal == null ? null : goal.id(), programId);
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.GENERATING);
             GeneratedProgramStructureResult generatedResult;
             long structureStartedAt = System.currentTimeMillis();
@@ -110,7 +114,9 @@ public class ProgramResolverService implements ProgramResolverUseCase {
             );
 
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.READY);
+            log.info("Program resolution completed: programId={}", programId);
         } catch (Exception ex) {
+            log.error("Program resolution failed: programId={}", programId, ex);
             learningProgramPersistencePort.updateStatus(programId, LearningProgramStatus.FAILED);
             throw ex;
         }

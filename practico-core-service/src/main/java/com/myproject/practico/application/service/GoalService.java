@@ -12,6 +12,8 @@ import com.myproject.practico.application.program.ProgramResolutionResult;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalResolutionStage;
 import com.myproject.practico.domain.GoalResolutionStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoalUseCase, GetGoalResolutionStatusUseCase {
+    private static final Logger log = LoggerFactory.getLogger(GoalService.class);
 
     private static final int GENERATION_MAX_ATTEMPTS = 3;
     private static final long GENERATION_RETRY_DELAY_MS = 500L;
@@ -71,13 +74,16 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
         persistStatus(goalId, GoalResolutionStage.QUEUED, 5, "Goal queued for course resolution");
         CompletableFuture.runAsync(() -> {
             try {
+                log.info("Starting goal resolution: goalId={}", goalId);
                 sleep(350);
                 persistStatus(goalId, GoalResolutionStage.GENERATING, 55, "Generating goal-based program");
                 ProgramResolutionResult resolved = resolveWithRetry(goalId, goal);
                 Long programId = parseProgramId(resolved.program().programId());
                 attachProgramToGoalUseCase.attach(goalId, programId, resolved.sourceType());
                 persistStatus(goalId, GoalResolutionStage.COMPLETED, 100, "Goal-based program generated");
+                log.info("Goal resolution completed: goalId={}, programId={}", goalId, programId);
             } catch (Exception ex) {
+                log.error("Goal resolution failed: goalId={}", goalId, ex);
                 persistStatus(goalId, GoalResolutionStage.FAILED, 100, "Resolution failed");
             }
         });
@@ -123,6 +129,13 @@ public class GoalService implements CreateGoalUseCase, ListGoalsUseCase, GetGoal
                 return programResolverUseCase.resolveForGoal(goal, "demo-user");
             } catch (RuntimeException ex) {
                 last = ex;
+                log.warn(
+                        "Program generation attempt failed: goalId={}, attempt={}/{}",
+                        goalId,
+                        attempt,
+                        GENERATION_MAX_ATTEMPTS,
+                        ex
+                );
                 if (attempt < GENERATION_MAX_ATTEMPTS) {
                     try {
                         sleep(GENERATION_RETRY_DELAY_MS);

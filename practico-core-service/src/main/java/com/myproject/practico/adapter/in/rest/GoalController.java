@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/goals")
+@RequestMapping({"/api/goals", "/goals"})
 public class GoalController {
 
     private final CreateGoalUseCase createGoalUseCase;
