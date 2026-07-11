@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+/mvnw
+/mvnw.cmd
+/.mvn/wrapper/maven-wrapper.properties
+/docs/env/production.env.example
+/docs/architecture.md
+/database.txt
+/PROJECT_STRUCTURE.md
+/sprint9.md
+/vpn
+/vpn.pub
