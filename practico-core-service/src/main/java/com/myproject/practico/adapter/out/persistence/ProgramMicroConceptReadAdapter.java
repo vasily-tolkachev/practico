@@ -36,7 +36,7 @@ public class ProgramMicroConceptReadAdapter implements ProgramMicroConceptReadPo
         }
 
         Set<Long> conceptIds = concepts.stream().map(ConceptJpaEntity::getId).collect(Collectors.toSet());
-        List<MicroConceptJpaEntity> micros = microConceptJpaRepository.findByConcept_IdInOrderByConcept_IdAscSortOrderAscIdAsc(conceptIds);
+        List<MicroConceptJpaEntity> micros = microConceptJpaRepository.findWithConceptAndTopicByConceptIds(conceptIds);
 
         List<ProgramMicroConceptTarget> targets = new ArrayList<>();
         for (MicroConceptJpaEntity micro : micros) {
