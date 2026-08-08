@@ -4,15 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.microconcept.MicroConceptGenerationTriggerResult;
 import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
+import com.myproject.practico.application.port.out.AiQuestionGeneratorPort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptGenerationJobPersistencePort;
 import com.myproject.practico.application.port.out.ProgramMicroConceptReadPort;
-import com.myproject.practico.application.port.out.QuestionPersistencePort;
+import com.myproject.practico.application.program.GeneratedQuestion;
+import com.myproject.practico.application.program.GeneratedQuestionBatch;
+import com.myproject.practico.application.program.ProgramMicroConceptTarget;
 import com.myproject.practico.domain.MicroConceptContentStatus;
 import com.myproject.practico.domain.MicroConceptGenerationJob;
 import com.myproject.practico.domain.MicroConceptGenerationJobStatus;
-import com.myproject.practico.domain.Question;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +28,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
     private final ProgramMicroConceptReadPort programMicroConceptReadPort;
     private final MicroConceptContentPersistencePort microConceptContentPersistencePort;
     private final MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort;
-    private final QuestionPersistencePort questionPersistencePort;
+    private final AiQuestionGeneratorPort aiQuestionGeneratorPort;
     private final ObjectMapper objectMapper;
     private final Executor microConceptGenerationExecutor;
 
@@ -35,7 +37,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
             ProgramMicroConceptReadPort programMicroConceptReadPort,
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
             MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
-            QuestionPersistencePort questionPersistencePort,
+            AiQuestionGeneratorPort aiQuestionGeneratorPort,
             ObjectMapper objectMapper,
             Executor microConceptGenerationExecutor
     ) {
@@ -43,7 +45,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
         this.programMicroConceptReadPort = programMicroConceptReadPort;
         this.microConceptContentPersistencePort = microConceptContentPersistencePort;
         this.microConceptGenerationJobPersistencePort = microConceptGenerationJobPersistencePort;
-        this.questionPersistencePort = questionPersistencePort;
+        this.aiQuestionGeneratorPort = aiQuestionGeneratorPort;
         this.objectMapper = objectMapper;
         this.microConceptGenerationExecutor = microConceptGenerationExecutor;
     }
@@ -101,16 +103,16 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                     "Generating micro-concept content"
             );
 
-            Question seed = questionPersistencePort.findAll().stream()
-                    .filter(question -> question.microConcept() != null && microConceptId.equals(question.microConcept().id()))
+            ProgramMicroConceptTarget target = programMicroConceptReadPort.findByProgramId(programId).stream()
+                    .filter(item -> microConceptId.equals(item.microConceptId()))
                     .findFirst()
                     .orElse(null);
-            if (seed == null) {
+            if (target == null) {
                 microConceptGenerationJobPersistencePort.updateStatus(
                         jobId,
                         MicroConceptGenerationJobStatus.FAILED,
                         0,
-                        "No seed question found for micro-concept"
+                        "Micro-concept target not found in program"
                 );
                 microConceptContentPersistencePort.upsert(
                         programId,
@@ -126,24 +128,37 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                 return;
             }
 
+            GeneratedQuestionBatch batch = aiQuestionGeneratorPort.generateQuestions(
+                    "",
+                    nullable(target.topicName()),
+                    nullable(target.conceptName()),
+                    nullable(target.microConceptName())
+            );
+            List<GeneratedQuestion> generatedQuestions = batch.questions();
+            if (generatedQuestions == null || generatedQuestions.isEmpty()) {
+                throw new IllegalStateException("Question generator returned empty result");
+            }
+            GeneratedQuestion primary = generatedQuestions.get(0);
+            GeneratedQuestion secondary = generatedQuestions.size() > 1 ? generatedQuestions.get(1) : primary;
+
             String questionPayload = toJson(Map.of(
-                    "text", nullable(seed.text()),
-                    "expectedAnswer", nullable(seed.expectedAnswer()),
-                    "difficulty", seed.difficulty() == null ? "" : seed.difficulty().name(),
-                    "questionType", seed.questionType() == null ? "" : seed.questionType().name()
+                    "text", nullable(primary.text()),
+                    "expectedAnswer", nullable(primary.expectedAnswer()),
+                    "difficulty", primary.difficulty() == null ? "" : primary.difficulty().name(),
+                    "questionType", primary.questionType() == null ? "" : primary.questionType().name()
             ));
             String learningCardPayload = toJson(Map.of(
-                    "title", titleFor(seed),
-                    "explanation", nullable(seed.explanation())
+                    "title", nullable(target.microConceptName()),
+                    "explanation", nullable(primary.explanation())
             ));
             String quickCheckPayload = toJson(Map.of(
-                    "question", nullable(seed.text()),
-                    "expectedAnswer", nullable(seed.expectedAnswer())
+                    "question", nullable(secondary.text()),
+                    "expectedAnswer", nullable(secondary.expectedAnswer())
             ));
             String practicePayload = toJson(List.of(
                     Map.of(
                             "type", "TRUE_FALSE",
-                            "question", "I understand: " + nullable(seed.text()),
+                            "question", "I understand: " + nullable(primary.text()),
                             "options", List.of(),
                             "correctOptions", List.of(),
                             "expectedBoolean", true,
@@ -152,7 +167,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
             ));
             String retryPayload = toJson(Map.of(
                     "rubric", List.of("Give the key idea", "Use one concrete example"),
-                    "question", nullable(seed.text())
+                    "question", nullable(primary.text())
             ));
 
             microConceptContentPersistencePort.upsert(
@@ -191,13 +206,6 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                     null
             );
         }
-    }
-
-    private String titleFor(Question seed) {
-        if (seed.microConcept() != null && seed.microConcept().name() != null && !seed.microConcept().name().isBlank()) {
-            return seed.microConcept().name().trim();
-        }
-        return "Micro concept";
     }
 
     private String toJson(Object payload) {

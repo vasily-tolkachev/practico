@@ -412,7 +412,7 @@ public class ApplicationWiringConfig {
             ProgramMicroConceptReadPort programMicroConceptReadPort,
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
             MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
-            QuestionPersistencePort questionPersistencePort,
+            AiQuestionGeneratorPort aiQuestionGeneratorPort,
             ObjectMapper objectMapper,
             Executor microConceptGenerationExecutor
     ) {
@@ -421,7 +421,7 @@ public class ApplicationWiringConfig {
                 programMicroConceptReadPort,
                 microConceptContentPersistencePort,
                 microConceptGenerationJobPersistencePort,
-                questionPersistencePort,
+                aiQuestionGeneratorPort,
                 objectMapper,
                 microConceptGenerationExecutor
         );
