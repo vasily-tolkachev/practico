@@ -2,9 +2,13 @@ package com.myproject.practico.adapter.in.rest;
 
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetGenerationMetricsUseCase;
+import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
+import com.myproject.practico.application.port.in.GetMicroConceptGenerationStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramTreeUseCase;
+import com.myproject.practico.application.microconcept.MicroConceptGenerationStatusResult;
+import com.myproject.practico.application.microconcept.MicroConceptGenerationTriggerResult;
 import com.myproject.practico.application.program.LearningProgram;
 import com.myproject.practico.application.program.ProgramGenerationStatus;
 import com.myproject.practico.application.program.GenerationStageMetrics;
@@ -18,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,6 +35,8 @@ public class LearningProgramController {
     private final GetProgramTreeUseCase getProgramTreeUseCase;
     private final GetProgramStatusUseCase getProgramStatusUseCase;
     private final GetGenerationMetricsUseCase getGenerationMetricsUseCase;
+    private final GenerateMicroConceptContentUseCase generateMicroConceptContentUseCase;
+    private final GetMicroConceptGenerationStatusUseCase getMicroConceptGenerationStatusUseCase;
     private final CurrentUserProvider currentUserProvider;
 
     public LearningProgramController(
@@ -38,6 +45,8 @@ public class LearningProgramController {
             GetProgramTreeUseCase getProgramTreeUseCase,
             GetProgramStatusUseCase getProgramStatusUseCase,
             GetGenerationMetricsUseCase getGenerationMetricsUseCase,
+            GenerateMicroConceptContentUseCase generateMicroConceptContentUseCase,
+            GetMicroConceptGenerationStatusUseCase getMicroConceptGenerationStatusUseCase,
             CurrentUserProvider currentUserProvider
     ) {
         this.getCurrentProgramUseCase = getCurrentProgramUseCase;
@@ -45,6 +54,8 @@ public class LearningProgramController {
         this.getProgramTreeUseCase = getProgramTreeUseCase;
         this.getProgramStatusUseCase = getProgramStatusUseCase;
         this.getGenerationMetricsUseCase = getGenerationMetricsUseCase;
+        this.generateMicroConceptContentUseCase = generateMicroConceptContentUseCase;
+        this.getMicroConceptGenerationStatusUseCase = getMicroConceptGenerationStatusUseCase;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -98,6 +109,39 @@ public class LearningProgramController {
     @GetMapping("/generation-metrics")
     public ResponseEntity<java.util.List<GenerationStageMetrics>> generationMetrics() {
         return ResponseEntity.ok(getGenerationMetricsUseCase.getMetrics());
+    }
+
+    @PostMapping("/{id}/micro-concepts/{microConceptId}/generate")
+    public ResponseEntity<MicroConceptGenerationTriggerResult> generateMicroConceptContent(
+            @PathVariable("id") Long programId,
+            @PathVariable("microConceptId") Long microConceptId
+    ) {
+        if (!isValidId(programId) || !isValidId(microConceptId)) {
+            return ResponseEntity.badRequest().build();
+        }
+        String userId = currentUserProvider.currentUserId().map(Object::toString).orElse(null);
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return generateMicroConceptContentUseCase.generate(programId, microConceptId, userId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/micro-concepts/{microConceptId}/generation-status")
+    public ResponseEntity<MicroConceptGenerationStatusResult> getMicroConceptGenerationStatus(
+            @PathVariable("id") Long programId,
+            @PathVariable("microConceptId") Long microConceptId
+    ) {
+        if (!isValidId(programId) || !isValidId(microConceptId)) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (currentUserProvider.currentUserId().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return getMicroConceptGenerationStatusUseCase.getStatus(programId, microConceptId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private boolean isValidId(Long id) {

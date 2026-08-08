@@ -3,6 +3,7 @@ package com.myproject.practico.config;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetGenerationMetricsUseCase;
+import com.myproject.practico.application.port.in.GetMicroConceptGenerationStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetLearningStateUseCase;
 import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
@@ -50,6 +51,7 @@ import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
 import com.myproject.practico.application.service.GetLearningStateService;
 import com.myproject.practico.application.service.GetCurrentProgramService;
+import com.myproject.practico.application.service.GetMicroConceptGenerationStatusService;
 import com.myproject.practico.application.service.GenerationMetricsQueryService;
 import com.myproject.practico.application.service.GetProgramQueryService;
 import com.myproject.practico.application.service.GoalService;
@@ -392,6 +394,21 @@ public class ApplicationWiringConfig {
                 programMicroConceptReadPort,
                 microConceptContentPersistencePort,
                 microConceptGenerationJobPersistencePort
+        );
+    }
+
+    @Bean
+    public GetMicroConceptGenerationStatusUseCase getMicroConceptGenerationStatusUseCase(
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort
+    ) {
+        return new GetMicroConceptGenerationStatusService(
+                learningProgramPersistencePort,
+                programMicroConceptReadPort,
+                microConceptGenerationJobPersistencePort,
+                microConceptContentPersistencePort
         );
     }
 
