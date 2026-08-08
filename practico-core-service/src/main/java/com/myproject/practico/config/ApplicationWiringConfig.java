@@ -160,6 +160,8 @@ public class ApplicationWiringConfig {
             ProgramResolverUseCase programResolverUseCase,
             AttachProgramToGoalUseCase attachProgramToGoalUseCase,
             StartLearningUseCase startLearningUseCase,
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
             RuntimeContextStore runtimeContextStore
     ) {
         return new StartLearningFromGoalService(
@@ -168,6 +170,8 @@ public class ApplicationWiringConfig {
                 programResolverUseCase,
                 attachProgramToGoalUseCase,
                 startLearningUseCase,
+                programMicroConceptReadPort,
+                microConceptContentPersistencePort,
                 runtimeContextStore
         );
     }
@@ -331,7 +335,10 @@ public class ApplicationWiringConfig {
             LearningEngine learningEngine,
             LearningProfilePersistencePort learningProfilePersistencePort,
             AnswerPersistencePort answerPersistencePort,
-            LearningStateAssembler learningStateAssembler
+            LearningStateAssembler learningStateAssembler,
+            RuntimeContextStore runtimeContextStore,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper
     ) {
         return new SubmitAnswerService(
                 learningSessionService,
@@ -339,7 +346,10 @@ public class ApplicationWiringConfig {
                 learningEngine,
                 learningProfilePersistencePort,
                 answerPersistencePort,
-                learningStateAssembler
+                learningStateAssembler,
+                runtimeContextStore,
+                microConceptContentPersistencePort,
+                objectMapper
         );
     }
 

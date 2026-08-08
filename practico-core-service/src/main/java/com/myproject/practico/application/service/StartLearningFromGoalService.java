@@ -7,7 +7,10 @@ import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
+import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
+import com.myproject.practico.application.port.out.ProgramMicroConceptReadPort;
 import com.myproject.practico.application.port.out.RuntimeContextStore;
+import com.myproject.practico.domain.MicroConceptContentStatus;
 import com.myproject.practico.application.program.ProgramResolutionResult;
 import com.myproject.practico.domain.Goal;
 import com.myproject.practico.domain.GoalProgramLink;
@@ -23,6 +26,8 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
     private final ProgramResolverUseCase programResolverUseCase;
     private final AttachProgramToGoalUseCase attachProgramToGoalUseCase;
     private final StartLearningUseCase startLearningUseCase;
+    private final ProgramMicroConceptReadPort programMicroConceptReadPort;
+    private final MicroConceptContentPersistencePort microConceptContentPersistencePort;
     private final RuntimeContextStore runtimeContextStore;
 
     public StartLearningFromGoalService(
@@ -31,6 +36,8 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
             ProgramResolverUseCase programResolverUseCase,
             AttachProgramToGoalUseCase attachProgramToGoalUseCase,
             StartLearningUseCase startLearningUseCase,
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
             RuntimeContextStore runtimeContextStore
     ) {
         this.goalPersistencePort = goalPersistencePort;
@@ -38,6 +45,8 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
         this.programResolverUseCase = programResolverUseCase;
         this.attachProgramToGoalUseCase = attachProgramToGoalUseCase;
         this.startLearningUseCase = startLearningUseCase;
+        this.programMicroConceptReadPort = programMicroConceptReadPort;
+        this.microConceptContentPersistencePort = microConceptContentPersistencePort;
         this.runtimeContextStore = runtimeContextStore;
     }
 
@@ -60,6 +69,13 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
                     Long programId = parseProgramId(resolved.program().programId());
                     return attachProgramToGoalUseCase.attach(goalId, programId, resolved.sourceType());
                 });
+        if (!isFirstMicroConceptReady(goalProgramLink.programId())) {
+            return Optional.of(new GoalLearningStartResult(
+                    goalId,
+                    String.valueOf(goalProgramLink.programId()),
+                    "MICRO_CONCEPT_CONTENT_NOT_READY"
+            ));
+        }
 
         runtimeContextStore.bind(runtimeUserId, goalId, String.valueOf(goalProgramLink.programId()));
         startLearningUseCase.start(runtimeUserId);
@@ -79,5 +95,21 @@ public class StartLearningFromGoalService implements StartLearningFromGoalUseCas
         } catch (NumberFormatException ex) {
             throw new IllegalStateException("Program id must be numeric: " + programId, ex);
         }
+    }
+
+    private boolean isFirstMicroConceptReady(Long programId) {
+        if (programId == null || programId <= 0) {
+            return false;
+        }
+        Long firstMicroConceptId = programMicroConceptReadPort.findByProgramId(programId).stream()
+                .map(target -> target.microConceptId())
+                .findFirst()
+                .orElse(null);
+        if (firstMicroConceptId == null || firstMicroConceptId <= 0) {
+            return false;
+        }
+        return microConceptContentPersistencePort.findByProgramIdAndMicroConceptId(programId, firstMicroConceptId)
+                .map(content -> content.status() == MicroConceptContentStatus.READY)
+                .orElse(false);
     }
 }

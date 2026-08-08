@@ -1,16 +1,29 @@
 package com.myproject.practico.application.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.learning.state.LearningState;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.in.GetQuestionUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.LearningProfilePersistencePort;
+import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
+import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.domain.Answer;
 import com.myproject.practico.domain.LearningProfile;
+import com.myproject.practico.domain.MicroConceptContent;
+import com.myproject.practico.domain.MicroConceptContentStatus;
 import com.myproject.practico.domain.Question;
+import com.myproject.practico.domain.LearningCard;
+import com.myproject.practico.domain.QuickCheck;
+import com.myproject.practico.domain.RuntimeContext;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 public class SubmitAnswerService implements SubmitAnswerUseCase {
@@ -21,6 +34,9 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
     private final LearningProfilePersistencePort learningProfilePersistencePort;
     private final AnswerPersistencePort answerPersistencePort;
     private final LearningStateAssembler learningStateAssembler;
+    private final RuntimeContextStore runtimeContextStore;
+    private final MicroConceptContentPersistencePort microConceptContentPersistencePort;
+    private final ObjectMapper objectMapper;
 
     public SubmitAnswerService(
             LearningSessionService learningSessionService,
@@ -28,7 +44,10 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             LearningEngine learningEngine,
             LearningProfilePersistencePort learningProfilePersistencePort,
             AnswerPersistencePort answerPersistencePort,
-            LearningStateAssembler learningStateAssembler
+            LearningStateAssembler learningStateAssembler,
+            RuntimeContextStore runtimeContextStore,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
+            ObjectMapper objectMapper
     ) {
         this.learningSessionService = learningSessionService;
         this.getQuestionUseCase = getQuestionUseCase;
@@ -36,6 +55,9 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         this.learningProfilePersistencePort = learningProfilePersistencePort;
         this.answerPersistencePort = answerPersistencePort;
         this.learningStateAssembler = learningStateAssembler;
+        this.runtimeContextStore = runtimeContextStore;
+        this.microConceptContentPersistencePort = microConceptContentPersistencePort;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -83,13 +105,15 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         learningSessionService.setPhase(userId, learningResult.nextPhase());
         markCurrentMicroConceptIfCompleted(userId, currentQuestion, learningResult.nextQuestion(), learningResult.nextPhase());
         if (learningResult.nextPhase() == LearningPhase.LEARNING_CARD) {
-            learningSessionService.setCurrentCycle(userId, new LearningCycle(
+            LearningCycle fallbackCycle = new LearningCycle(
                     evaluation.learningCard(),
                     evaluation.quickCheck(),
                     evaluation.practiceItems(),
                     evaluation.retryRubric(),
                     evaluation.retryQuestion()
-            ));
+            );
+            LearningCycle cycle = cycleFromStoredContent(userId, currentQuestion).orElse(fallbackCycle);
+            learningSessionService.setCurrentCycle(userId, cycle);
         } else if (learningResult.nextPhase() == LearningPhase.RETRY) {
             learningSessionService.setCurrentCycle(userId, session.currentCycle());
         } else {
@@ -148,5 +172,219 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("Invalid authenticated user id: " + userId, ex);
         }
+    }
+
+    private Optional<LearningCycle> cycleFromStoredContent(String userId, Question currentQuestion) {
+        Long microConceptId = currentQuestion == null || currentQuestion.microConcept() == null
+                ? null
+                : currentQuestion.microConcept().id();
+        if (microConceptId == null || microConceptId <= 0) {
+            return Optional.empty();
+        }
+        Long programId = runtimeContextStore.get(userId)
+                .map(RuntimeContext::programId)
+                .flatMap(this::safeParseLong)
+                .orElse(null);
+        if (programId == null || programId <= 0) {
+            return Optional.empty();
+        }
+
+        MicroConceptContent content = microConceptContentPersistencePort
+                .findByProgramIdAndMicroConceptId(programId, microConceptId)
+                .orElse(null);
+        if (content == null || content.status() != MicroConceptContentStatus.READY) {
+            return Optional.empty();
+        }
+
+        LearningCard card = parseLearningCard(content.learningCardPayload());
+        QuickCheck quickCheck = parseQuickCheck(content.quickCheckPayload());
+        List<PracticeItem> practiceItems = parsePracticeItems(content.practicePayload());
+        RetryPayload retryPayload = parseRetryPayload(content.retryPayload());
+        if (card == null && quickCheck == null && practiceItems.isEmpty() && retryPayload.rubric().isEmpty() && isBlank(retryPayload.question())) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new LearningCycle(
+                card,
+                quickCheck,
+                practiceItems,
+                retryPayload.rubric(),
+                retryPayload.question()
+        ));
+    }
+
+    private LearningCard parseLearningCard(String payload) {
+        JsonNode node = readJson(payload);
+        if (node == null || !node.isObject()) {
+            return null;
+        }
+        String title = text(node, "title");
+        String explanation = text(node, "explanation");
+        if (isBlank(title) && isBlank(explanation)) {
+            return null;
+        }
+        return new LearningCard(title, explanation);
+    }
+
+    private QuickCheck parseQuickCheck(String payload) {
+        JsonNode node = readJson(payload);
+        if (node == null || !node.isObject()) {
+            return null;
+        }
+        String question = text(node, "question");
+        String expectedAnswer = text(node, "expectedAnswer");
+        if (isBlank(question) && isBlank(expectedAnswer)) {
+            return null;
+        }
+        return new QuickCheck(question, expectedAnswer);
+    }
+
+    private List<PracticeItem> parsePracticeItems(String payload) {
+        JsonNode node = readJson(payload);
+        if (node == null || !node.isArray()) {
+            return List.of();
+        }
+        List<PracticeItem> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item == null || !item.isObject()) {
+                continue;
+            }
+            String typeRaw = text(item, "type");
+            PracticeType type = parsePracticeType(typeRaw);
+            if (type == null) {
+                continue;
+            }
+            String question = text(item, "question");
+            List<String> options = textArray(item.get("options"));
+            List<Integer> correctOptions = intArray(item.get("correctOptions"));
+            Boolean expectedBoolean = booleanOrNull(item.get("expectedBoolean"));
+            Boolean ambiguousIndexing = booleanOrNull(item.get("ambiguousIndexing"));
+            result.add(new PracticeItem(type, question, options, correctOptions, expectedBoolean, ambiguousIndexing));
+        }
+        return result;
+    }
+
+    private RetryPayload parseRetryPayload(String payload) {
+        JsonNode node = readJson(payload);
+        if (node == null || !node.isObject()) {
+            return new RetryPayload(List.of(), null);
+        }
+        List<String> rubric = textArray(node.get("rubric"));
+        String question = text(node, "question");
+        return new RetryPayload(rubric, question);
+    }
+
+    private JsonNode readJson(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(payload);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private String text(JsonNode node, String fieldName) {
+        if (node == null || fieldName == null) {
+            return null;
+        }
+        JsonNode value = node.get(fieldName);
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        String result = value.asText();
+        return result == null ? null : result.trim();
+    }
+
+    private List<String> textArray(JsonNode node) {
+        if (node == null || !node.isArray()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item == null || item.isNull()) {
+                continue;
+            }
+            String value = item.asText();
+            if (value != null && !value.isBlank()) {
+                result.add(value.trim());
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private List<Integer> intArray(JsonNode node) {
+        if (node == null || !node.isArray()) {
+            return List.of();
+        }
+        List<Integer> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item == null || item.isNull()) {
+                continue;
+            }
+            if (item.canConvertToInt()) {
+                result.add(item.asInt());
+                continue;
+            }
+            try {
+                result.add(Integer.parseInt(item.asText().trim()));
+            } catch (Exception ignored) {
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private Boolean booleanOrNull(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (node.isBoolean()) {
+            return node.asBoolean();
+        }
+        String value = node.asText();
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim().toLowerCase();
+        if ("true".equals(normalized)) {
+            return true;
+        }
+        if ("false".equals(normalized)) {
+            return false;
+        }
+        return null;
+    }
+
+    private PracticeType parsePracticeType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return PracticeType.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private Optional<Long> safeParseLong(String value) {
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Long.parseLong(value.trim()));
+        } catch (NumberFormatException ex) {
+            return Optional.empty();
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private record RetryPayload(
+            List<String> rubric,
+            String question
+    ) {
     }
 }
