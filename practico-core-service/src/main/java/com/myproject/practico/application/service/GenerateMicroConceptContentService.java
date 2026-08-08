@@ -18,6 +18,8 @@ import com.myproject.practico.domain.MicroConceptGenerationJob;
 import com.myproject.practico.domain.MicroConceptGenerationJobStatus;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -160,29 +162,30 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                     "question", "",
                     "expectedAnswer", ""
             ));
-            String practicePayload = toJson(List.of(
-                    Map.of(
-                            "type", "TRUE_FALSE",
-                            "question", "I understand: " + nullable(primary.text()),
-                            "options", List.of(),
-                            "correctOptions", List.of(),
-                            "expectedBoolean", true,
-                            "ambiguousIndexing", false
-                    ),
-                    Map.of(
-                            "type", "MULTIPLE_CHOICE",
-                            "question", "Pick the most accurate statement:",
-                            "options", List.of(
-                                    nullable(primary.expectedAnswer()),
-                                    nullable(secondary.expectedAnswer()),
-                                    "Both are incorrect",
-                                    "Not enough context"
-                            ),
-                            "correctOptions", List.of(0),
-                            "expectedBoolean", null,
-                            "ambiguousIndexing", true
-                    )
+            List<Map<String, Object>> practiceItems = new ArrayList<>();
+            Map<String, Object> trueFalse = new LinkedHashMap<>();
+            trueFalse.put("type", "TRUE_FALSE");
+            trueFalse.put("question", "I understand: " + nullable(primary.text()));
+            trueFalse.put("options", List.of());
+            trueFalse.put("correctOptions", List.of());
+            trueFalse.put("expectedBoolean", true);
+            trueFalse.put("ambiguousIndexing", false);
+            practiceItems.add(trueFalse);
+
+            Map<String, Object> multipleChoice = new LinkedHashMap<>();
+            multipleChoice.put("type", "MULTIPLE_CHOICE");
+            multipleChoice.put("question", "Pick the most accurate statement:");
+            multipleChoice.put("options", List.of(
+                    nullable(primary.expectedAnswer()),
+                    nullable(secondary.expectedAnswer()),
+                    "Both are incorrect",
+                    "Not enough context"
             ));
+            multipleChoice.put("correctOptions", List.of(0));
+            multipleChoice.put("ambiguousIndexing", true);
+            practiceItems.add(multipleChoice);
+
+            String practicePayload = toJson(practiceItems);
             String retryPayload = toJson(Map.of(
                     "rubric", List.of(),
                     "question", ""
