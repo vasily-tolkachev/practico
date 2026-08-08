@@ -77,12 +77,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 @Configuration
 public class ApplicationWiringConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    public Executor microConceptGenerationExecutor() {
+        return Executors.newFixedThreadPool(2);
     }
 
     @Bean
@@ -403,13 +411,19 @@ public class ApplicationWiringConfig {
             LearningProgramPersistencePort learningProgramPersistencePort,
             ProgramMicroConceptReadPort programMicroConceptReadPort,
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
-            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort
+            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
+            QuestionPersistencePort questionPersistencePort,
+            ObjectMapper objectMapper,
+            Executor microConceptGenerationExecutor
     ) {
         return new GenerateMicroConceptContentService(
                 learningProgramPersistencePort,
                 programMicroConceptReadPort,
                 microConceptContentPersistencePort,
-                microConceptGenerationJobPersistencePort
+                microConceptGenerationJobPersistencePort,
+                questionPersistencePort,
+                objectMapper,
+                microConceptGenerationExecutor
         );
     }
 

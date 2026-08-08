@@ -1,16 +1,24 @@
 package com.myproject.practico.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.microconcept.MicroConceptGenerationTriggerResult;
 import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptGenerationJobPersistencePort;
 import com.myproject.practico.application.port.out.ProgramMicroConceptReadPort;
+import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.domain.MicroConceptContentStatus;
 import com.myproject.practico.domain.MicroConceptGenerationJob;
 import com.myproject.practico.domain.MicroConceptGenerationJobStatus;
+import com.myproject.practico.domain.Question;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 
 public class GenerateMicroConceptContentService implements GenerateMicroConceptContentUseCase {
 
@@ -18,17 +26,26 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
     private final ProgramMicroConceptReadPort programMicroConceptReadPort;
     private final MicroConceptContentPersistencePort microConceptContentPersistencePort;
     private final MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort;
+    private final QuestionPersistencePort questionPersistencePort;
+    private final ObjectMapper objectMapper;
+    private final Executor microConceptGenerationExecutor;
 
     public GenerateMicroConceptContentService(
             LearningProgramPersistencePort learningProgramPersistencePort,
             ProgramMicroConceptReadPort programMicroConceptReadPort,
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
-            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort
+            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
+            QuestionPersistencePort questionPersistencePort,
+            ObjectMapper objectMapper,
+            Executor microConceptGenerationExecutor
     ) {
         this.learningProgramPersistencePort = learningProgramPersistencePort;
         this.programMicroConceptReadPort = programMicroConceptReadPort;
         this.microConceptContentPersistencePort = microConceptContentPersistencePort;
         this.microConceptGenerationJobPersistencePort = microConceptGenerationJobPersistencePort;
+        this.questionPersistencePort = questionPersistencePort;
+        this.objectMapper = objectMapper;
+        this.microConceptGenerationExecutor = microConceptGenerationExecutor;
     }
 
     @Override
@@ -71,7 +88,133 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                 "Queued for generation",
                 normalizeRequestedBy(requestedBy)
         );
+        microConceptGenerationExecutor.execute(() -> runGeneration(created.id(), programId, microConceptId));
         return Optional.of(toResult(created));
+    }
+
+    private void runGeneration(Long jobId, Long programId, Long microConceptId) {
+        try {
+            microConceptGenerationJobPersistencePort.updateStatus(
+                    jobId,
+                    MicroConceptGenerationJobStatus.GENERATING,
+                    10,
+                    "Generating micro-concept content"
+            );
+
+            Question seed = questionPersistencePort.findAll().stream()
+                    .filter(question -> question.microConcept() != null && microConceptId.equals(question.microConcept().id()))
+                    .findFirst()
+                    .orElse(null);
+            if (seed == null) {
+                microConceptGenerationJobPersistencePort.updateStatus(
+                        jobId,
+                        MicroConceptGenerationJobStatus.FAILED,
+                        0,
+                        "No seed question found for micro-concept"
+                );
+                microConceptContentPersistencePort.upsert(
+                        programId,
+                        microConceptId,
+                        MicroConceptContentStatus.FAILED,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                return;
+            }
+
+            String questionPayload = toJson(Map.of(
+                    "text", nullable(seed.text()),
+                    "expectedAnswer", nullable(seed.expectedAnswer()),
+                    "difficulty", seed.difficulty() == null ? "" : seed.difficulty().name(),
+                    "questionType", seed.questionType() == null ? "" : seed.questionType().name()
+            ));
+            String learningCardPayload = toJson(Map.of(
+                    "title", titleFor(seed),
+                    "explanation", nullable(seed.explanation())
+            ));
+            String quickCheckPayload = toJson(Map.of(
+                    "question", nullable(seed.text()),
+                    "expectedAnswer", nullable(seed.expectedAnswer())
+            ));
+            String practicePayload = toJson(List.of(
+                    Map.of(
+                            "type", "TRUE_FALSE",
+                            "question", "I understand: " + nullable(seed.text()),
+                            "options", List.of(),
+                            "correctOptions", List.of(),
+                            "expectedBoolean", true,
+                            "ambiguousIndexing", false
+                    )
+            ));
+            String retryPayload = toJson(Map.of(
+                    "rubric", List.of("Give the key idea", "Use one concrete example"),
+                    "question", nullable(seed.text())
+            ));
+
+            microConceptContentPersistencePort.upsert(
+                    programId,
+                    microConceptId,
+                    MicroConceptContentStatus.READY,
+                    questionPayload,
+                    learningCardPayload,
+                    practicePayload,
+                    quickCheckPayload,
+                    retryPayload,
+                    Instant.now()
+            );
+            microConceptGenerationJobPersistencePort.updateStatus(
+                    jobId,
+                    MicroConceptGenerationJobStatus.READY,
+                    100,
+                    "Generation completed"
+            );
+        } catch (Exception ex) {
+            microConceptGenerationJobPersistencePort.updateStatus(
+                    jobId,
+                    MicroConceptGenerationJobStatus.FAILED,
+                    0,
+                    "Generation failed: " + safeMessage(ex)
+            );
+            microConceptContentPersistencePort.upsert(
+                    programId,
+                    microConceptId,
+                    MicroConceptContentStatus.FAILED,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
+    }
+
+    private String titleFor(Question seed) {
+        if (seed.microConcept() != null && seed.microConcept().name() != null && !seed.microConcept().name().isBlank()) {
+            return seed.microConcept().name().trim();
+        }
+        return "Micro concept";
+    }
+
+    private String toJson(Object payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to serialize payload", ex);
+        }
+    }
+
+    private String nullable(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String safeMessage(Exception ex) {
+        String message = ex.getMessage();
+        return (message == null || message.isBlank()) ? ex.getClass().getSimpleName() : message;
     }
 
     private MicroConceptGenerationTriggerResult toResult(MicroConceptGenerationJob job) {

@@ -67,6 +67,24 @@ public class MicroConceptGenerationJobPersistenceAdapter implements MicroConcept
         return toDomain(created);
     }
 
+    @Override
+    public Optional<MicroConceptGenerationJob> updateStatus(
+            Long jobId,
+            MicroConceptGenerationJobStatus status,
+            Integer progressPercent,
+            String statusMessage
+    ) {
+        return microConceptGenerationJobJpaRepository.findById(jobId)
+                .map(existing -> {
+                    existing.setStatus(status);
+                    existing.setProgressPercent(progressPercent);
+                    existing.setStatusMessage(statusMessage);
+                    existing.setUpdatedAt(Instant.now());
+                    return microConceptGenerationJobJpaRepository.save(existing);
+                })
+                .map(this::toDomain);
+    }
+
     private MicroConceptGenerationJob toDomain(MicroConceptGenerationJobJpaEntity entity) {
         return new MicroConceptGenerationJob(
                 entity.getId(),

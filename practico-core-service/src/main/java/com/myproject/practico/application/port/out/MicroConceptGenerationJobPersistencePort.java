@@ -19,4 +19,11 @@ public interface MicroConceptGenerationJobPersistencePort {
             String statusMessage,
             String requestedBy
     );
+
+    Optional<MicroConceptGenerationJob> updateStatus(
+            Long jobId,
+            MicroConceptGenerationJobStatus status,
+            Integer progressPercent,
+            String statusMessage
+    );
 }
