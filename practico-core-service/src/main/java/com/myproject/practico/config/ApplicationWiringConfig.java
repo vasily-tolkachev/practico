@@ -469,7 +469,8 @@ public class ApplicationWiringConfig {
             QuestionPersistencePort questionPersistencePort,
             LearningSessionService learningSessionService,
             LearningStateAssembler learningStateAssembler,
-            RuntimeContextStore runtimeContextStore
+            RuntimeContextStore runtimeContextStore,
+            ObjectMapper objectMapper
     ) {
         return new StartLearningFromMicroConceptService(
                 learningProgramPersistencePort,
@@ -478,7 +479,8 @@ public class ApplicationWiringConfig {
                 questionPersistencePort,
                 learningSessionService,
                 learningStateAssembler,
-                runtimeContextStore
+                runtimeContextStore,
+                objectMapper
         );
     }
 

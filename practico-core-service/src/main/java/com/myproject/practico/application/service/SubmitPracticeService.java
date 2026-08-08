@@ -57,6 +57,17 @@ public class SubmitPracticeService implements SubmitPracticeUseCase {
             return learningStateAssembler.assemble(userId, learningSessionService.getSession(userId).orElse(session));
         }
 
+        boolean hasRetryQuestion = session.currentCycle() != null
+                && session.currentCycle().retryQuestion() != null
+                && !session.currentCycle().retryQuestion().isBlank();
+        boolean hasRetryRubric = session.currentCycle() != null
+                && session.currentCycle().retryRubric() != null
+                && !session.currentCycle().retryRubric().isEmpty();
+        if (!hasRetryQuestion && !hasRetryRubric) {
+            learningSessionService.setPhase(userId, LearningPhase.COMPLETED);
+            return learningStateAssembler.assemble(userId, learningSessionService.getSession(userId).orElse(session));
+        }
+
         learningSessionService.setPhase(userId, LearningPhase.RETRY);
 
         Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);

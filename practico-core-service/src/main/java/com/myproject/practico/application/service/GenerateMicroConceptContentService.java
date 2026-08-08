@@ -157,8 +157,8 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                     "explanation", nullable(primary.explanation())
             ));
             String quickCheckPayload = toJson(Map.of(
-                    "question", nullable(secondary.text()),
-                    "expectedAnswer", nullable(secondary.expectedAnswer())
+                    "question", "",
+                    "expectedAnswer", ""
             ));
             String practicePayload = toJson(List.of(
                     Map.of(
@@ -168,11 +168,24 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
                             "correctOptions", List.of(),
                             "expectedBoolean", true,
                             "ambiguousIndexing", false
+                    ),
+                    Map.of(
+                            "type", "MULTIPLE_CHOICE",
+                            "question", "Pick the most accurate statement:",
+                            "options", List.of(
+                                    nullable(primary.expectedAnswer()),
+                                    nullable(secondary.expectedAnswer()),
+                                    "Both are incorrect",
+                                    "Not enough context"
+                            ),
+                            "correctOptions", List.of(0),
+                            "expectedBoolean", null,
+                            "ambiguousIndexing", true
                     )
             ));
             String retryPayload = toJson(Map.of(
-                    "rubric", List.of("Give the key idea", "Use one concrete example"),
-                    "question", nullable(primary.text())
+                    "rubric", List.of(),
+                    "question", ""
             ));
 
             microConceptContentPersistencePort.upsert(
