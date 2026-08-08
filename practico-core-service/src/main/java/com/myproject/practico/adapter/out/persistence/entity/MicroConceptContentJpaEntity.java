@@ -41,19 +41,19 @@ public class MicroConceptContentJpaEntity {
     @Column(nullable = false, length = 32)
     private MicroConceptContentStatus status;
 
-    @Column(name = "question_payload")
+    @Column(name = "question_payload", columnDefinition = "text")
     private String questionPayload;
 
-    @Column(name = "learning_card_payload")
+    @Column(name = "learning_card_payload", columnDefinition = "text")
     private String learningCardPayload;
 
-    @Column(name = "practice_payload")
+    @Column(name = "practice_payload", columnDefinition = "text")
     private String practicePayload;
 
-    @Column(name = "quick_check_payload")
+    @Column(name = "quick_check_payload", columnDefinition = "text")
     private String quickCheckPayload;
 
-    @Column(name = "retry_payload")
+    @Column(name = "retry_payload", columnDefinition = "text")
     private String retryPayload;
 
     @Column(name = "generated_at")

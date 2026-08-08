@@ -73,11 +73,17 @@ import com.myproject.practico.application.service.SubmitPracticeService;
 import com.myproject.practico.application.service.SubmitQuickCheckService;
 import com.myproject.practico.application.service.SubmitRetryService;
 import com.myproject.practico.application.service.UserConceptProgressService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationWiringConfig {
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
     @Bean
     public GoalService goalService(
