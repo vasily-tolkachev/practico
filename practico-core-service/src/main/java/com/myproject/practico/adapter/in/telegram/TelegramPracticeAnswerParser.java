@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class TelegramPracticeAnswerParser {
 
     public PracticeAnswer parse(String text) {
-        return new PracticeAnswer(parseBoolean(text), parseSelectedOptions(text));
+        return new PracticeAnswer(parseBoolean(text), parseSelectedOptions(text), java.util.List.of(), java.util.Map.of());
     }
 
     private Boolean parseBoolean(String value) {

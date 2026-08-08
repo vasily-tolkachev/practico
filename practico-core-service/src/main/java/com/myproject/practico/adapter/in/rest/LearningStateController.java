@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/learning")
@@ -98,7 +100,7 @@ public class LearningStateController {
     @PostMapping("/answer")
     public ResponseEntity<LearningState> answer(@RequestBody AnswerRequest request) {
         String userId = userId();
-        if (request == null || userId == null || isBlank(request.answer())) {
+        if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(submitAnswerUseCase.submit(userId, request.answer()));
@@ -119,30 +121,43 @@ public class LearningStateController {
         if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        PracticeAnswer answer = new PracticeAnswer(request.booleanAnswer(), request.selectedOptions());
+        PracticeAnswer answer = new PracticeAnswer(
+                request.booleanAnswer(),
+                request.selectedOptions(),
+                request.orderedOptions(),
+                request.matches()
+        );
         return ResponseEntity.ok(submitPracticeUseCase.submitPractice(userId, answer));
     }
 
     @PostMapping("/quick-check")
-    public ResponseEntity<LearningState> quickCheck(@RequestBody AnswerRequest request) {
+    public ResponseEntity<LearningState> quickCheck(@RequestBody PracticeRequest request) {
         String userId = userId();
-        if (request == null || userId == null || request.answer() == null) {
+        if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(submitQuickCheckUseCase.submitQuickCheck(userId, request.answer()));
+        PracticeAnswer answer = new PracticeAnswer(
+                request.booleanAnswer(),
+                request.selectedOptions(),
+                request.orderedOptions(),
+                request.matches()
+        );
+        return ResponseEntity.ok(submitQuickCheckUseCase.submitQuickCheck(userId, answer));
     }
 
     @PostMapping("/retry")
-    public ResponseEntity<LearningState> retry(@RequestBody AnswerRequest request) {
+    public ResponseEntity<LearningState> retry(@RequestBody PracticeRequest request) {
         String userId = userId();
-        if (request == null || userId == null || isBlank(request.answer())) {
+        if (request == null || userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(submitRetryUseCase.submitRetry(userId, request.answer()));
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        PracticeAnswer answer = new PracticeAnswer(
+                request.booleanAnswer(),
+                request.selectedOptions(),
+                request.orderedOptions(),
+                request.matches()
+        );
+        return ResponseEntity.ok(submitRetryUseCase.submitRetry(userId, answer));
     }
 
     public record AnswerRequest(
@@ -152,7 +167,9 @@ public class LearningStateController {
 
     public record PracticeRequest(
             Boolean booleanAnswer,
-            Set<Integer> selectedOptions
+            Set<Integer> selectedOptions,
+            List<Integer> orderedOptions,
+            Map<Integer, Integer> matches
     ) {
     }
 

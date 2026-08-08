@@ -1,13 +1,20 @@
 package com.myproject.practico.application.learning.state;
 
+import com.myproject.practico.application.service.PracticeType;
+
 import java.util.List;
 
 public record RetryActivity(
         ActivityType type,
+        PracticeType questionType,
         String question,
-        List<String> rubric
+        List<String> options,
+        List<String> leftItems,
+        List<String> rightItems
 ) implements LearningActivity {
     public RetryActivity {
-        rubric = rubric == null ? List.of() : List.copyOf(rubric);
+        options = options == null ? List.of() : List.copyOf(options);
+        leftItems = leftItems == null ? List.of() : List.copyOf(leftItems);
+        rightItems = rightItems == null ? List.of() : List.copyOf(rightItems);
     }
 }

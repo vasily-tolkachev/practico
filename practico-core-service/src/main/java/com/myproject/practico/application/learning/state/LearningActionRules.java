@@ -11,7 +11,7 @@ public final class LearningActionRules {
 
     public static Set<ActionType> allowedForPhase(LearningPhase phase) {
         return switch (phase) {
-            case QUESTION -> Set.of(ActionType.SUBMIT_ANSWER);
+            case QUESTION -> Set.of(ActionType.SUBMIT_ANSWER, ActionType.CONTINUE_LEARNING);
             case LEARNING_CARD -> Set.of(ActionType.CONTINUE_LEARNING);
             case PRACTICE -> Set.of(ActionType.SUBMIT_PRACTICE);
             case QUICK_CHECK -> Set.of(ActionType.SUBMIT_QUICK_CHECK);

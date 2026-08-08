@@ -67,6 +67,7 @@ import com.myproject.practico.application.service.RetryMasteryPolicy;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.StartLearningFromGoalService;
 import com.myproject.practico.application.service.StartLearningFromMicroConceptService;
+import com.myproject.practico.application.service.StructuredMicroConceptProgressionService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.ContinueLearningService;
 import com.myproject.practico.application.service.LearningSessionStore;
@@ -321,6 +322,14 @@ public class ApplicationWiringConfig {
     }
 
     @Bean
+    public StructuredMicroConceptProgressionService structuredMicroConceptProgressionService(
+            LearningSessionService learningSessionService,
+            GetQuestionUseCase getQuestionUseCase
+    ) {
+        return new StructuredMicroConceptProgressionService(learningSessionService, getQuestionUseCase);
+    }
+
+    @Bean
     public LearningEngine learningEngine(
             EvaluationService evaluationService,
             UserConceptProgressService userConceptProgressService,
@@ -397,17 +406,35 @@ public class ApplicationWiringConfig {
     @Bean
     public SubmitQuickCheckUseCase submitQuickCheckUseCase(
             LearningSessionService learningSessionService,
-            QuickCheckService quickCheckService,
+            PracticeService practiceService,
+            GetQuestionUseCase getQuestionUseCase,
+            StructuredMicroConceptProgressionService structuredMicroConceptProgressionService,
             LearningStateAssembler learningStateAssembler
     ) {
-        return new SubmitQuickCheckService(learningSessionService, quickCheckService, learningStateAssembler);
+        return new SubmitQuickCheckService(
+                learningSessionService,
+                practiceService,
+                getQuestionUseCase,
+                structuredMicroConceptProgressionService,
+                learningStateAssembler
+        );
     }
 
     @Bean
     public SubmitRetryUseCase submitRetryUseCase(
-            SubmitAnswerUseCase submitAnswerUseCase
+            LearningSessionService learningSessionService,
+            PracticeService practiceService,
+            GetQuestionUseCase getQuestionUseCase,
+            StructuredMicroConceptProgressionService structuredMicroConceptProgressionService,
+            LearningStateAssembler learningStateAssembler
     ) {
-        return new SubmitRetryService(submitAnswerUseCase);
+        return new SubmitRetryService(
+                learningSessionService,
+                practiceService,
+                getQuestionUseCase,
+                structuredMicroConceptProgressionService,
+                learningStateAssembler
+        );
     }
 
     @Bean

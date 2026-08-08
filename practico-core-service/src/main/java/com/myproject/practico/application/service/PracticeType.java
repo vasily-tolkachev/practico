@@ -2,5 +2,8 @@ package com.myproject.practico.application.service;
 
 public enum PracticeType {
     TRUE_FALSE,
-    MULTIPLE_CHOICE
+    MULTIPLE_CHOICE,
+    MULTI_SELECT,
+    ORDERING,
+    MATCHING
 }

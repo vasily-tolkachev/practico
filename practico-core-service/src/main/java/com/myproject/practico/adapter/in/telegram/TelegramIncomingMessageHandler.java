@@ -78,8 +78,8 @@ public class TelegramIncomingMessageHandler {
                 PracticeAnswer practiceAnswer = practiceAnswerParser.parse(rawText);
                 yield submitPracticeUseCase.submitPractice(userId, practiceAnswer);
             }
-            case QUICK_CHECK -> submitQuickCheckUseCase.submitQuickCheck(userId, rawText);
-            case RETRY -> submitRetryUseCase.submitRetry(userId, rawText);
+            case QUICK_CHECK -> submitQuickCheckUseCase.submitQuickCheck(userId, practiceAnswerParser.parse(rawText));
+            case RETRY -> submitRetryUseCase.submitRetry(userId, practiceAnswerParser.parse(rawText));
             case QUESTION -> submitAnswerUseCase.submit(userId, rawText);
             case COMPLETED -> currentState;
         };

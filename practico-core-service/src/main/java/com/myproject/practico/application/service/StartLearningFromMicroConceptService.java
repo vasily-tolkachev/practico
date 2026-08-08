@@ -14,10 +14,11 @@ import com.myproject.practico.domain.LearningCard;
 import com.myproject.practico.domain.MicroConceptContent;
 import com.myproject.practico.domain.MicroConceptContentStatus;
 import com.myproject.practico.domain.Question;
-import com.myproject.practico.domain.QuickCheck;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class StartLearningFromMicroConceptService implements StartLearningFromMicroConceptUseCase {
@@ -83,17 +84,19 @@ public class StartLearningFromMicroConceptService implements StartLearningFromMi
         runtimeContextStore.bindProgram(userId.trim(), String.valueOf(programId));
         learningSessionService.startLearningSession(userId.trim(), firstQuestion.concept().id(), firstQuestion.id());
         learningSessionService.setCurrentCycle(userId.trim(), cycle);
-        learningSessionService.setPhase(userId.trim(), LearningPhase.LEARNING_CARD);
+        learningSessionService.setPhase(userId.trim(), LearningPhase.QUESTION);
         return Optional.of(learningStateAssembler.assemble(userId.trim(), learningSessionService.getSession(userId.trim()).orElse(null)));
     }
 
     private LearningCycle cycleFromContent(MicroConceptContent content) {
         return new LearningCycle(
                 parseLearningCard(content.learningCardPayload()),
-                parseQuickCheck(content.quickCheckPayload()),
+                null,
+                parsePracticeItem(content.quickCheckPayload()),
                 parsePracticeItems(content.practicePayload()),
-                parseRetryRubric(content.retryPayload()),
-                parseRetryQuestion(content.retryPayload())
+                List.of(),
+                null,
+                parsePracticeItem(content.retryPayload())
         );
     }
 
@@ -106,43 +109,49 @@ public class StartLearningFromMicroConceptService implements StartLearningFromMi
         return new LearningCard(title, explanation);
     }
 
-    private QuickCheck parseQuickCheck(String payload) {
-        JsonNode node = readJson(payload);
-        if (node == null || !node.isObject()) return null;
-        String question = text(node, "question");
-        String expectedAnswer = text(node, "expectedAnswer");
-        if (isBlank(question) && isBlank(expectedAnswer)) return null;
-        return new QuickCheck(question, expectedAnswer);
-    }
-
     private List<PracticeItem> parsePracticeItems(String payload) {
         JsonNode node = readJson(payload);
         if (node == null || !node.isArray()) return List.of();
         List<PracticeItem> result = new ArrayList<>();
         for (JsonNode item : node) {
-            if (item == null || !item.isObject()) continue;
-            PracticeType type = parseType(text(item, "type"));
-            if (type == null) continue;
-            String question = text(item, "question");
-            List<String> options = textArray(item.get("options"));
-            List<Integer> correctOptions = intArray(item.get("correctOptions"));
-            Boolean expectedBoolean = booleanOrNull(item.get("expectedBoolean"));
-            Boolean ambiguous = booleanOrNull(item.get("ambiguousIndexing"));
-            result.add(new PracticeItem(type, question, options, correctOptions, expectedBoolean, ambiguous));
+            PracticeItem parsed = parsePracticeItem(item);
+            if (parsed != null) {
+                result.add(parsed);
+            }
         }
         return result;
     }
 
-    private List<String> parseRetryRubric(String payload) {
+    private PracticeItem parsePracticeItem(String payload) {
         JsonNode node = readJson(payload);
-        if (node == null || !node.isObject()) return List.of();
-        return textArray(node.get("rubric"));
+        return parsePracticeItem(node);
     }
 
-    private String parseRetryQuestion(String payload) {
-        JsonNode node = readJson(payload);
+    private PracticeItem parsePracticeItem(JsonNode node) {
         if (node == null || !node.isObject()) return null;
-        return text(node, "question");
+        PracticeType type = parseType(text(node, "type"));
+        if (type == null) return null;
+        String question = text(node, "question");
+        List<String> options = textArray(node.get("options"));
+        List<Integer> correctOptions = intArray(node.get("correctOptions"));
+        Boolean expectedBoolean = booleanOrNull(node.get("expectedBoolean"));
+        List<Integer> correctOrder = intArray(node.get("correctOrder"));
+        List<String> leftItems = textArray(node.get("leftItems"));
+        List<String> rightItems = textArray(node.get("rightItems"));
+        Map<Integer, Integer> correctMatches = intMap(node.get("correctMatches"));
+        Boolean ambiguous = booleanOrNull(node.get("ambiguousIndexing"));
+        return new PracticeItem(
+                type,
+                question,
+                options,
+                correctOptions,
+                expectedBoolean,
+                correctOrder,
+                leftItems,
+                rightItems,
+                correctMatches,
+                ambiguous
+        );
     }
 
     private JsonNode readJson(String payload) {
@@ -199,6 +208,28 @@ public class StartLearningFromMicroConceptService implements StartLearningFromMi
         if ("true".equals(normalized)) return true;
         if ("false".equals(normalized)) return false;
         return null;
+    }
+
+    private Map<Integer, Integer> intMap(JsonNode node) {
+        if (node == null || !node.isObject()) return Map.of();
+        Map<Integer, Integer> result = new LinkedHashMap<>();
+        node.fields().forEachRemaining(entry -> {
+            Integer key = parseInt(entry.getKey());
+            Integer value = parseInt(entry.getValue() == null ? null : entry.getValue().asText());
+            if (key != null && value != null) {
+                result.put(key, value);
+            }
+        });
+        return Map.copyOf(result);
+    }
+
+    private Integer parseInt(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private PracticeType parseType(String value) {

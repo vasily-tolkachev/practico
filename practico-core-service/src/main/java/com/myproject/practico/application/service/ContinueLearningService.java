@@ -32,14 +32,13 @@ public class ContinueLearningService implements ContinueLearningUseCase {
             if (!practiceItems.isEmpty()) {
                 learningSessionService.setPracticeIndex(userId, 0);
                 learningSessionService.setPhase(userId, LearningPhase.PRACTICE);
-            } else if (cycle != null
-                    && cycle.quickCheck() != null
-                    && cycle.quickCheck().question() != null
-                    && !cycle.quickCheck().question().isBlank()) {
+            } else if (cycle != null && cycle.quickCheckItem() != null) {
                 learningSessionService.setPhase(userId, LearningPhase.QUICK_CHECK);
             } else {
                 learningSessionService.setPhase(userId, LearningPhase.RETRY);
             }
+        } else if (session.phase() == LearningPhase.QUESTION && session.currentCycle() != null) {
+            learningSessionService.setPhase(userId, LearningPhase.LEARNING_CARD);
         }
 
         return learningStateAssembler.assemble(userId, learningSessionService.getSession(userId).orElse(session));

@@ -474,7 +474,18 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                     if (!item.has("expectedBoolean")) {
                         continue;
                     }
-                    items.add(new PracticeItem(type, question, List.of(), List.of(), item.path("expectedBoolean").asBoolean(), false));
+                    items.add(new PracticeItem(
+                            type,
+                            question,
+                            List.of(),
+                            List.of(),
+                            item.path("expectedBoolean").asBoolean(),
+                            List.of(),
+                            List.of(),
+                            List.of(),
+                            java.util.Map.of(),
+                            false
+                    ));
                     continue;
                 }
 
@@ -535,7 +546,18 @@ public class OpenAiClient implements EvaluationPort, QuickCheckPort {
                 boolean ambiguousIndexing = !containsZero && !containsMax
                         && correctOptions.stream().allMatch(i -> i > 0 && i < options.size());
 
-                items.add(new PracticeItem(type, question, options, correctOptions, null, ambiguousIndexing));
+                items.add(new PracticeItem(
+                        type,
+                        question,
+                        options,
+                        correctOptions,
+                        null,
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        java.util.Map.of(),
+                        ambiguousIndexing
+                ));
             }
             return items;
         } catch (Exception ex) {

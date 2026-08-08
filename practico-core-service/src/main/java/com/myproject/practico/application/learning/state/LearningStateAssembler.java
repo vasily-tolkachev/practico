@@ -26,7 +26,7 @@ public class LearningStateAssembler {
         LearningContext context = toContext(question);
         ProgressSnapshot progress = toProgress(question, session);
         LearningActivity currentActivity = toActivity(session.phase(), session.currentCycle(), question, session.currentPracticeIndex());
-        List<AvailableAction> availableActions = actionsFor(session.phase());
+        List<AvailableAction> availableActions = actionsFor(session);
 
         return new LearningState(
                 SCHEMA_VERSION,
@@ -109,12 +109,19 @@ public class LearningStateAssembler {
             case PRACTICE -> toPracticeActivity(cycle, currentPracticeIndex);
             case QUICK_CHECK -> new QuickCheckActivity(
                     ActivityType.QUICK_CHECK,
-                    cycle == null || cycle.quickCheck() == null ? null : cycle.quickCheck().question()
+                    cycle == null || cycle.quickCheckItem() == null ? null : cycle.quickCheckItem().type(),
+                    cycle == null || cycle.quickCheckItem() == null ? null : cycle.quickCheckItem().question(),
+                    cycle == null || cycle.quickCheckItem() == null ? List.of() : cycle.quickCheckItem().options(),
+                    cycle == null || cycle.quickCheckItem() == null ? List.of() : cycle.quickCheckItem().leftItems(),
+                    cycle == null || cycle.quickCheckItem() == null ? List.of() : cycle.quickCheckItem().rightItems()
             );
             case RETRY -> new RetryActivity(
                     ActivityType.RETRY,
-                    cycle == null ? null : cycle.retryQuestion(),
-                    cycle == null || cycle.retryRubric() == null ? List.of() : cycle.retryRubric()
+                    cycle == null || cycle.retryItem() == null ? null : cycle.retryItem().type(),
+                    cycle == null || cycle.retryItem() == null ? null : cycle.retryItem().question(),
+                    cycle == null || cycle.retryItem() == null ? List.of() : cycle.retryItem().options(),
+                    cycle == null || cycle.retryItem() == null ? List.of() : cycle.retryItem().leftItems(),
+                    cycle == null || cycle.retryItem() == null ? List.of() : cycle.retryItem().rightItems()
             );
             case COMPLETED -> new CompletedActivity(ActivityType.COMPLETED, "completed");
         };
@@ -133,14 +140,22 @@ public class LearningStateAssembler {
                 .map(item -> new PracticeActivity.PracticeItemView(
                         item.type(),
                         item.question(),
-                        item.options()
+                        item.options(),
+                        item.leftItems(),
+                        item.rightItems()
                 ))
                 .toList();
 
         return new PracticeActivity(ActivityType.PRACTICE, currentItem, items.size(), mappedItems);
     }
 
-    private List<AvailableAction> actionsFor(LearningPhase phase) {
+    private List<AvailableAction> actionsFor(LearningSessionStore.LearningSession session) {
+        if (session != null
+                && session.phase() == LearningPhase.QUESTION
+                && session.currentCycle() != null) {
+            return List.of(new AvailableAction(ActionType.CONTINUE_LEARNING, true));
+        }
+        LearningPhase phase = session == null ? LearningPhase.COMPLETED : session.phase();
         return LearningActionRules.allowedForPhase(phase).stream()
                 .map(type -> new AvailableAction(type, true))
                 .toList();

@@ -21,8 +21,10 @@ import com.myproject.practico.domain.RuntimeContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -62,13 +64,16 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     @Override
     public LearningState submit(String userId, String answer) {
-        if (answer == null || answer.isBlank()) {
-            return learningStateAssembler.assemble(userId, learningSessionService.getSession(userId).orElse(null));
-        }
-
         LearningSessionStore.LearningSession session = learningSessionService.getSession(userId).orElse(null);
         if (session == null) {
             return learningStateAssembler.assemble(userId, null);
+        }
+        if (session.phase() == LearningPhase.QUESTION && session.currentCycle() != null) {
+            learningSessionService.setPhase(userId, LearningPhase.LEARNING_CARD);
+            return learningStateAssembler.assemble(userId, learningSessionService.getSession(userId).orElse(session));
+        }
+        if (answer == null || answer.isBlank()) {
+            return learningStateAssembler.assemble(userId, session);
         }
 
         Question currentQuestion = getQuestionUseCase.getById(session.currentQuestionId()).orElse(null);
@@ -108,9 +113,11 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             LearningCycle fallbackCycle = new LearningCycle(
                     evaluation.learningCard(),
                     evaluation.quickCheck(),
+                    null,
                     evaluation.practiceItems(),
                     evaluation.retryRubric(),
-                    evaluation.retryQuestion()
+                    evaluation.retryQuestion(),
+                    null
             );
             LearningCycle cycle = cycleFromStoredContent(userId, currentQuestion).orElse(fallbackCycle);
             learningSessionService.setCurrentCycle(userId, cycle);
@@ -198,18 +205,27 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
         LearningCard card = parseLearningCard(content.learningCardPayload());
         QuickCheck quickCheck = parseQuickCheck(content.quickCheckPayload());
+        PracticeItem quickCheckItem = parsePracticeItem(content.quickCheckPayload());
         List<PracticeItem> practiceItems = parsePracticeItems(content.practicePayload());
         RetryPayload retryPayload = parseRetryPayload(content.retryPayload());
-        if (card == null && quickCheck == null && practiceItems.isEmpty() && retryPayload.rubric().isEmpty() && isBlank(retryPayload.question())) {
+        if (card == null
+                && quickCheck == null
+                && quickCheckItem == null
+                && practiceItems.isEmpty()
+                && retryPayload.rubric().isEmpty()
+                && isBlank(retryPayload.question())
+                && retryPayload.item() == null) {
             return Optional.empty();
         }
 
         return Optional.of(new LearningCycle(
                 card,
                 quickCheck,
+                quickCheckItem,
                 practiceItems,
                 retryPayload.rubric(),
-                retryPayload.question()
+                retryPayload.question(),
+                retryPayload.item()
         ));
     }
 
@@ -258,8 +274,23 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
             List<String> options = textArray(item.get("options"));
             List<Integer> correctOptions = intArray(item.get("correctOptions"));
             Boolean expectedBoolean = booleanOrNull(item.get("expectedBoolean"));
+            List<Integer> correctOrder = intArray(item.get("correctOrder"));
+            List<String> leftItems = textArray(item.get("leftItems"));
+            List<String> rightItems = textArray(item.get("rightItems"));
+            Map<Integer, Integer> correctMatches = intMap(item.get("correctMatches"));
             Boolean ambiguousIndexing = booleanOrNull(item.get("ambiguousIndexing"));
-            result.add(new PracticeItem(type, question, options, correctOptions, expectedBoolean, ambiguousIndexing));
+            result.add(new PracticeItem(
+                    type,
+                    question,
+                    options,
+                    correctOptions,
+                    expectedBoolean,
+                    correctOrder,
+                    leftItems,
+                    rightItems,
+                    correctMatches,
+                    ambiguousIndexing
+            ));
         }
         return result;
     }
@@ -267,11 +298,47 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
     private RetryPayload parseRetryPayload(String payload) {
         JsonNode node = readJson(payload);
         if (node == null || !node.isObject()) {
-            return new RetryPayload(List.of(), null);
+            return new RetryPayload(List.of(), null, null);
         }
         List<String> rubric = textArray(node.get("rubric"));
         String question = text(node, "question");
-        return new RetryPayload(rubric, question);
+        PracticeItem item = parsePracticeItem(node);
+        return new RetryPayload(rubric, question, item);
+    }
+
+    private PracticeItem parsePracticeItem(String payload) {
+        return parsePracticeItem(readJson(payload));
+    }
+
+    private PracticeItem parsePracticeItem(JsonNode item) {
+        if (item == null || !item.isObject()) {
+            return null;
+        }
+        PracticeType type = parsePracticeType(text(item, "type"));
+        if (type == null) {
+            return null;
+        }
+        String question = text(item, "question");
+        List<String> options = textArray(item.get("options"));
+        List<Integer> correctOptions = intArray(item.get("correctOptions"));
+        Boolean expectedBoolean = booleanOrNull(item.get("expectedBoolean"));
+        List<Integer> correctOrder = intArray(item.get("correctOrder"));
+        List<String> leftItems = textArray(item.get("leftItems"));
+        List<String> rightItems = textArray(item.get("rightItems"));
+        Map<Integer, Integer> correctMatches = intMap(item.get("correctMatches"));
+        Boolean ambiguousIndexing = booleanOrNull(item.get("ambiguousIndexing"));
+        return new PracticeItem(
+                type,
+                question,
+                options,
+                correctOptions,
+                expectedBoolean,
+                correctOrder,
+                leftItems,
+                rightItems,
+                correctMatches,
+                ambiguousIndexing
+        );
     }
 
     private JsonNode readJson(String payload) {
@@ -367,6 +434,32 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
         }
     }
 
+    private Map<Integer, Integer> intMap(JsonNode node) {
+        if (node == null || !node.isObject()) {
+            return Map.of();
+        }
+        Map<Integer, Integer> result = new LinkedHashMap<>();
+        node.fields().forEachRemaining(entry -> {
+            Integer key = safeParseInt(entry.getKey());
+            Integer value = safeParseInt(entry.getValue() == null ? null : entry.getValue().asText());
+            if (key != null && value != null) {
+                result.put(key, value);
+            }
+        });
+        return Collections.unmodifiableMap(result);
+    }
+
+    private Integer safeParseInt(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     private Optional<Long> safeParseLong(String value) {
         if (value == null || value.isBlank()) {
             return Optional.empty();
@@ -384,7 +477,8 @@ public class SubmitAnswerService implements SubmitAnswerUseCase {
 
     private record RetryPayload(
             List<String> rubric,
-            String question
+            String question,
+            PracticeItem item
     ) {
     }
 }

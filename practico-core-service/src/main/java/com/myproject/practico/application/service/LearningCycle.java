@@ -8,8 +8,10 @@ import java.util.List;
 public record LearningCycle(
         LearningCard learningCard,
         QuickCheck quickCheck,
+        PracticeItem quickCheckItem,
         List<PracticeItem> practiceItems,
         List<String> retryRubric,
-        String retryQuestion
+        String retryQuestion,
+        PracticeItem retryItem
 ) {
 }
