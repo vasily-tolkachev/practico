@@ -14,7 +14,7 @@ public interface MicroConceptGenerationJobJpaRepository extends JpaRepository<Mi
             Long microConceptId
     );
 
-    List<MicroConceptGenerationJobJpaEntity> findByProgram_IdAndMicroConcept_IdAndStatusIn(
+    Optional<MicroConceptGenerationJobJpaEntity> findFirstByProgram_IdAndMicroConcept_IdAndStatusInOrderByCreatedAtDesc(
             Long programId,
             Long microConceptId,
             List<MicroConceptGenerationJobStatus> statuses

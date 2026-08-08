@@ -16,6 +16,7 @@ import com.myproject.practico.application.port.in.GetGoalResolutionStatusUseCase
 import com.myproject.practico.application.port.in.ProgramResolverUseCase;
 import com.myproject.practico.application.port.in.StartLearningFromGoalUseCase;
 import com.myproject.practico.application.port.in.ContinueLearningUseCase;
+import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
 import com.myproject.practico.application.port.in.StartLearningUseCase;
 import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
 import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
@@ -32,6 +33,8 @@ import com.myproject.practico.application.port.out.GoalPersistencePort;
 import com.myproject.practico.application.port.out.GoalProgramLinkPersistencePort;
 import com.myproject.practico.application.port.out.GoalResolutionStatusPort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
+import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
+import com.myproject.practico.application.port.out.MicroConceptGenerationJobPersistencePort;
 import com.myproject.practico.application.port.out.QuickCheckPort;
 import com.myproject.practico.application.port.out.QuestionPersistencePort;
 import com.myproject.practico.application.port.out.ProgramTreeReadPort;
@@ -41,6 +44,7 @@ import com.myproject.practico.application.port.out.RuntimeContextStore;
 import com.myproject.practico.application.port.out.UserConceptProgressPersistencePort;
 import com.myproject.practico.application.port.out.LearningProfilePersistencePort;
 import com.myproject.practico.application.service.EvaluationService;
+import com.myproject.practico.application.service.GenerateMicroConceptContentService;
 import com.myproject.practico.application.service.DefaultLearningEngine;
 import com.myproject.practico.application.service.DefaultRetryMasteryPolicy;
 import com.myproject.practico.application.service.GetQuestionService;
@@ -374,6 +378,21 @@ public class ApplicationWiringConfig {
             SubmitAnswerUseCase submitAnswerUseCase
     ) {
         return new SubmitRetryService(submitAnswerUseCase);
+    }
+
+    @Bean
+    public GenerateMicroConceptContentUseCase generateMicroConceptContentUseCase(
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
+            MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort
+    ) {
+        return new GenerateMicroConceptContentService(
+                learningProgramPersistencePort,
+                programMicroConceptReadPort,
+                microConceptContentPersistencePort,
+                microConceptGenerationJobPersistencePort
+        );
     }
 
 }
