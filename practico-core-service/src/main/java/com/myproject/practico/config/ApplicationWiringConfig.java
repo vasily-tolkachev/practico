@@ -24,6 +24,7 @@ import com.myproject.practico.application.port.in.SubmitPracticeUseCase;
 import com.myproject.practico.application.port.in.SubmitQuickCheckUseCase;
 import com.myproject.practico.application.port.in.SubmitRetryUseCase;
 import com.myproject.practico.application.port.in.SubmitAnswerUseCase;
+import com.myproject.practico.application.port.in.StartLearningFromMicroConceptUseCase;
 import com.myproject.practico.application.learning.state.LearningStateAssembler;
 import com.myproject.practico.application.port.out.AnswerPersistencePort;
 import com.myproject.practico.application.port.out.AiCourseGeneratorPort;
@@ -65,6 +66,7 @@ import com.myproject.practico.application.service.LearningSessionService;
 import com.myproject.practico.application.service.RetryMasteryPolicy;
 import com.myproject.practico.application.service.StartLearningService;
 import com.myproject.practico.application.service.StartLearningFromGoalService;
+import com.myproject.practico.application.service.StartLearningFromMicroConceptService;
 import com.myproject.practico.application.service.SubmitAnswerService;
 import com.myproject.practico.application.service.ContinueLearningService;
 import com.myproject.practico.application.service.LearningSessionStore;
@@ -415,6 +417,7 @@ public class ApplicationWiringConfig {
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
             MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
             AiQuestionGeneratorPort aiQuestionGeneratorPort,
+            GeneratedQuestionPersistencePort generatedQuestionPersistencePort,
             ObjectMapper objectMapper,
             Executor microConceptGenerationExecutor
     ) {
@@ -424,6 +427,7 @@ public class ApplicationWiringConfig {
                 microConceptContentPersistencePort,
                 microConceptGenerationJobPersistencePort,
                 aiQuestionGeneratorPort,
+                generatedQuestionPersistencePort,
                 objectMapper,
                 microConceptGenerationExecutor
         );
@@ -454,6 +458,27 @@ public class ApplicationWiringConfig {
                 learningProgramPersistencePort,
                 programMicroConceptReadPort,
                 microConceptContentPersistencePort
+        );
+    }
+
+    @Bean
+    public StartLearningFromMicroConceptUseCase startLearningFromMicroConceptUseCase(
+            LearningProgramPersistencePort learningProgramPersistencePort,
+            ProgramMicroConceptReadPort programMicroConceptReadPort,
+            MicroConceptContentPersistencePort microConceptContentPersistencePort,
+            QuestionPersistencePort questionPersistencePort,
+            LearningSessionService learningSessionService,
+            LearningStateAssembler learningStateAssembler,
+            RuntimeContextStore runtimeContextStore
+    ) {
+        return new StartLearningFromMicroConceptService(
+                learningProgramPersistencePort,
+                programMicroConceptReadPort,
+                microConceptContentPersistencePort,
+                questionPersistencePort,
+                learningSessionService,
+                learningStateAssembler,
+                runtimeContextStore
         );
     }
 

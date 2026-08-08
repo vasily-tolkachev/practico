@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myproject.practico.application.microconcept.MicroConceptGenerationTriggerResult;
 import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
 import com.myproject.practico.application.port.out.AiQuestionGeneratorPort;
+import com.myproject.practico.application.port.out.GeneratedQuestionPersistencePort;
 import com.myproject.practico.application.port.out.LearningProgramPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptContentPersistencePort;
 import com.myproject.practico.application.port.out.MicroConceptGenerationJobPersistencePort;
@@ -29,6 +30,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
     private final MicroConceptContentPersistencePort microConceptContentPersistencePort;
     private final MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort;
     private final AiQuestionGeneratorPort aiQuestionGeneratorPort;
+    private final GeneratedQuestionPersistencePort generatedQuestionPersistencePort;
     private final ObjectMapper objectMapper;
     private final Executor microConceptGenerationExecutor;
 
@@ -38,6 +40,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
             MicroConceptContentPersistencePort microConceptContentPersistencePort,
             MicroConceptGenerationJobPersistencePort microConceptGenerationJobPersistencePort,
             AiQuestionGeneratorPort aiQuestionGeneratorPort,
+            GeneratedQuestionPersistencePort generatedQuestionPersistencePort,
             ObjectMapper objectMapper,
             Executor microConceptGenerationExecutor
     ) {
@@ -46,6 +49,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
         this.microConceptContentPersistencePort = microConceptContentPersistencePort;
         this.microConceptGenerationJobPersistencePort = microConceptGenerationJobPersistencePort;
         this.aiQuestionGeneratorPort = aiQuestionGeneratorPort;
+        this.generatedQuestionPersistencePort = generatedQuestionPersistencePort;
         this.objectMapper = objectMapper;
         this.microConceptGenerationExecutor = microConceptGenerationExecutor;
     }
@@ -138,6 +142,7 @@ public class GenerateMicroConceptContentService implements GenerateMicroConceptC
             if (generatedQuestions == null || generatedQuestions.isEmpty()) {
                 throw new IllegalStateException("Question generator returned empty result");
             }
+            generatedQuestionPersistencePort.save(microConceptId, generatedQuestions);
             GeneratedQuestion primary = generatedQuestions.get(0);
             GeneratedQuestion secondary = generatedQuestions.size() > 1 ? generatedQuestions.get(1) : primary;
 

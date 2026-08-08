@@ -23,6 +23,14 @@ public class InMemoryRuntimeContextStore implements RuntimeContextStore {
     }
 
     @Override
+    public void bindProgram(String userId, String programId) {
+        if (userId == null || userId.isBlank() || programId == null || programId.isBlank()) {
+            return;
+        }
+        byUserId.put(userId.trim(), new RuntimeContext(null, programId, Instant.now()));
+    }
+
+    @Override
     public Optional<RuntimeContext> get(String userId) {
         if (userId == null || userId.isBlank()) {
             return Optional.empty();
