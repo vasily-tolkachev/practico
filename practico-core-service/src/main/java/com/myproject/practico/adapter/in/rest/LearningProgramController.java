@@ -3,10 +3,12 @@ package com.myproject.practico.adapter.in.rest;
 import com.myproject.practico.application.port.in.GetCurrentProgramUseCase;
 import com.myproject.practico.application.port.in.GetGenerationMetricsUseCase;
 import com.myproject.practico.application.port.in.GenerateMicroConceptContentUseCase;
+import com.myproject.practico.application.port.in.GetMicroConceptGeneratedContentUseCase;
 import com.myproject.practico.application.port.in.GetMicroConceptGenerationStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramByIdUseCase;
 import com.myproject.practico.application.port.in.GetProgramStatusUseCase;
 import com.myproject.practico.application.port.in.GetProgramTreeUseCase;
+import com.myproject.practico.application.microconcept.MicroConceptGeneratedContentResult;
 import com.myproject.practico.application.microconcept.MicroConceptGenerationStatusResult;
 import com.myproject.practico.application.microconcept.MicroConceptGenerationTriggerResult;
 import com.myproject.practico.application.program.LearningProgram;
@@ -36,6 +38,7 @@ public class LearningProgramController {
     private final GetProgramStatusUseCase getProgramStatusUseCase;
     private final GetGenerationMetricsUseCase getGenerationMetricsUseCase;
     private final GenerateMicroConceptContentUseCase generateMicroConceptContentUseCase;
+    private final GetMicroConceptGeneratedContentUseCase getMicroConceptGeneratedContentUseCase;
     private final GetMicroConceptGenerationStatusUseCase getMicroConceptGenerationStatusUseCase;
     private final CurrentUserProvider currentUserProvider;
 
@@ -46,6 +49,7 @@ public class LearningProgramController {
             GetProgramStatusUseCase getProgramStatusUseCase,
             GetGenerationMetricsUseCase getGenerationMetricsUseCase,
             GenerateMicroConceptContentUseCase generateMicroConceptContentUseCase,
+            GetMicroConceptGeneratedContentUseCase getMicroConceptGeneratedContentUseCase,
             GetMicroConceptGenerationStatusUseCase getMicroConceptGenerationStatusUseCase,
             CurrentUserProvider currentUserProvider
     ) {
@@ -55,6 +59,7 @@ public class LearningProgramController {
         this.getProgramStatusUseCase = getProgramStatusUseCase;
         this.getGenerationMetricsUseCase = getGenerationMetricsUseCase;
         this.generateMicroConceptContentUseCase = generateMicroConceptContentUseCase;
+        this.getMicroConceptGeneratedContentUseCase = getMicroConceptGeneratedContentUseCase;
         this.getMicroConceptGenerationStatusUseCase = getMicroConceptGenerationStatusUseCase;
         this.currentUserProvider = currentUserProvider;
     }
@@ -140,6 +145,22 @@ public class LearningProgramController {
             return ResponseEntity.badRequest().build();
         }
         return getMicroConceptGenerationStatusUseCase.getStatus(programId, microConceptId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/micro-concepts/{microConceptId}/content")
+    public ResponseEntity<MicroConceptGeneratedContentResult> getMicroConceptGeneratedContent(
+            @PathVariable("id") Long programId,
+            @PathVariable("microConceptId") Long microConceptId
+    ) {
+        if (!isValidId(programId) || !isValidId(microConceptId)) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (currentUserProvider.currentUserId().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return getMicroConceptGeneratedContentUseCase.getContent(programId, microConceptId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
