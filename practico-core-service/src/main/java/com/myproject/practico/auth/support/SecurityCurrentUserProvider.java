@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,11 +25,7 @@ public class SecurityCurrentUserProvider implements CurrentUserProvider {
             return Optional.ofNullable(context.userId());
         }
         if (principal instanceof String value && !value.isBlank()) {
-            try {
-                return Optional.of(UUID.fromString(value));
-            } catch (IllegalArgumentException ignored) {
-                return Optional.empty();
-            }
+            return toUserUuid(value);
         }
         if (principal instanceof Jwt jwt) {
             String uid = jwt.getClaimAsString("uid");
@@ -38,12 +35,20 @@ public class SecurityCurrentUserProvider implements CurrentUserProvider {
             if (uid == null || uid.isBlank()) {
                 return Optional.empty();
             }
-            try {
-                return Optional.of(UUID.fromString(uid));
-            } catch (IllegalArgumentException ignored) {
-                return Optional.empty();
-            }
+            return toUserUuid(uid);
         }
         return Optional.empty();
+    }
+
+    private Optional<UUID> toUserUuid(String rawUserId) {
+        if (rawUserId == null || rawUserId.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = rawUserId.trim();
+        try {
+            return Optional.of(UUID.fromString(normalized));
+        } catch (IllegalArgumentException ignored) {
+            return Optional.of(UUID.nameUUIDFromBytes(normalized.getBytes(StandardCharsets.UTF_8)));
+        }
     }
 }
