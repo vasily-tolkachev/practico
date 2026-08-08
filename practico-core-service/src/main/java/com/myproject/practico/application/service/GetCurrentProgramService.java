@@ -64,7 +64,9 @@ public class GetCurrentProgramService implements GetCurrentProgramUseCase {
         if (binding.isPresent()) {
             Long goalId = binding.get().goalId();
             Long programId = parseProgramId(binding.get().programId());
-            String goalTitle = goalPersistencePort.findById(goalId)
+            String goalTitle = goalId == null
+                    ? "Goal"
+                    : goalPersistencePort.findById(goalId)
                     .map(goal -> goal.title() == null || goal.title().isBlank() ? "Goal" : goal.title().trim())
                     .orElse("Goal");
             List<ProgramConcept> concepts = programId == null
